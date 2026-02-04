@@ -1,0 +1,76 @@
+# k8s/bandit-scheduler/scheduler-deployment.yaml
+# Deployment for the Adaptive Bandit Scheduler
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bandit-scheduler
+  namespace: default
+  labels:
+    app: bandit-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bandit-scheduler
+  template:
+    metadata:
+      labels:
+        app: bandit-scheduler
+    spec:
+      serviceAccountName: bandit-scheduler
+      
+      # Run on CPU node
+      nodeSelector:
+        node_type: cpu_standard
+      
+      containers:
+        - name: scheduler
+          image: bandit-scheduler:v1
+          imagePullPolicy: Never
+          
+          env:
+            - name: SCHEDULER_NAME
+              value: "bandit-scheduler"
+            - name: WATCH_NAMESPACE
+              value: "default"
+            - name: CPU_NODE_NAME
+              value: "minikube"
+            - name: GPU_NODE_NAME
+              value: "minikube-m02"
+            - name: LOG_LEVEL
+              value: "INFO"
+            # Thompson Sampling parameters
+            - name: WINDOW_SIZE
+              value: "20"
+            - name: RESET_THRESHOLD
+              value: "0.4"
+            # Shock simulation
+            - name: SHOCK_ENABLED
+              value: "true"
+            - name: SHOCK_QUERY
+              value: "50"
+            - name: SIMULATE_REWARDS
+              value: "true"
+            # Real metrics endpoint (when not simulating)
+            - name: RAG_APP_METRICS_URL
+              value: "http://rag-app-service:8000/metrics"
+          
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+      
+      volumes:
+        - name: logs
+          emptyDir: {}
+      
+      restartPolicy: Always

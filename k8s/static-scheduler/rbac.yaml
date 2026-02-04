@@ -1,0 +1,60 @@
+# k8s/static-scheduler/rbac.yaml
+# RBAC configuration for Static ML Scheduler
+# Grants permissions to watch pods, list nodes, and create bindings
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-scheduler
+  namespace: default
+  labels:
+    app: static-scheduler
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: static-scheduler-role
+  labels:
+    app: static-scheduler
+rules:
+  # Read pods to watch for pending ones
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  
+  # Read nodes to get cluster state
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  
+  # Create bindings to assign pods to nodes
+  - apiGroups: [""]
+    resources: ["pods/binding"]
+    verbs: ["create"]
+  
+  - apiGroups: [""]
+    resources: ["bindings"]
+    verbs: ["create"]
+  
+  # Read events (optional, for debugging)
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: static-scheduler-binding
+  labels:
+    app: static-scheduler
+subjects:
+  - kind: ServiceAccount
+    name: static-scheduler
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: static-scheduler-role
+  apiGroup: rbac.authorization.k8s.io

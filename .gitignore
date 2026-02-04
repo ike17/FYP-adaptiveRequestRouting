@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+.venv/
+
+# ML artifacts
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.pth
+
+# Results (keep structure, ignore data)
+results/*.json
+results/*.csv
+results/analysis/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kubernetes secrets (never commit)
+*-secret.yaml
+*.kubeconfig
+
+# Training data (regenerate with script)
+ml-schedulers/static/training_data.csv
+ml-schedulers/static/dataset_stats.json
+ml-schedulers/static/training_report.json
+ml-schedulers/static/*.png
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

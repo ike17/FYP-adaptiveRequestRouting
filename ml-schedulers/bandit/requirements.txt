@@ -1,0 +1,4 @@
+# ml-schedulers/bandit/requirements.txt
+kubernetes==29.0.0
+numpy==1.26.3
+requests==2.31.0

@@ -1,0 +1,60 @@
+# k8s/bandit-scheduler/rbac.yaml
+# RBAC configuration for Bandit Scheduler
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bandit-scheduler
+  namespace: default
+  labels:
+    app: bandit-scheduler
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: bandit-scheduler-role
+  labels:
+    app: bandit-scheduler
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  
+  - apiGroups: [""]
+    resources: ["pods/binding"]
+    verbs: ["create"]
+  
+  - apiGroups: [""]
+    resources: ["bindings"]
+    verbs: ["create"]
+  
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  
+  # Access to services for metrics fetching
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bandit-scheduler-binding
+  labels:
+    app: bandit-scheduler
+subjects:
+  - kind: ServiceAccount
+    name: bandit-scheduler
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: bandit-scheduler-role
+  apiGroup: rbac.authorization.k8s.io

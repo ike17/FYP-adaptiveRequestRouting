@@ -1,0 +1,67 @@
+# k8s/static-scheduler/scheduler-deployment.yaml
+# Deployment for the Static ML Scheduler pod
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-scheduler
+  namespace: default
+  labels:
+    app: static-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-scheduler
+  template:
+    metadata:
+      labels:
+        app: static-scheduler
+    spec:
+      serviceAccountName: static-scheduler
+      
+      # Run on CPU node to avoid consuming GPU resources
+      nodeSelector:
+        node_type: cpu_standard
+      
+      containers:
+        - name: scheduler
+          image: static-scheduler:v1
+          imagePullPolicy: Never
+          
+          env:
+            - name: SCHEDULER_NAME
+              value: "static-scheduler"
+            - name: WATCH_NAMESPACE
+              value: "default"
+            - name: CPU_NODE_NAME
+              value: "minikube"
+            - name: GPU_NODE_NAME
+              value: "minikube-m02"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: MODEL_PATH
+              value: "/app/model/static_scheduler_model.pkl"
+            - name: FEATURE_NAMES_PATH
+              value: "/app/model/feature_names.pkl"
+          
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          
+          # Volume for logs
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+      
+      volumes:
+        - name: logs
+          emptyDir: {}
+      
+      # Restart policy
+      restartPolicy: Always

@@ -1,0 +1,149 @@
+# k8s/baseline/01-uninformed-default.yaml
+# Baseline Scenario A: Default scheduler with no hints
+# Purpose: Measure worst-case performance when scheduler has minimal information
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: generation-service
+  labels:
+    app: generation
+    experiment: baseline-uninformed
+spec:
+  selector:
+    app: generation
+  ports:
+    - port: 11434
+      targetPort: 11434
+      name: ollama
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: generation-deployment
+  labels:
+    app: generation
+    experiment: baseline-uninformed
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: generation
+  template:
+    metadata:
+      labels:
+        app: generation
+        experiment: baseline-uninformed
+    spec:
+      # Uses default kube-scheduler
+      # No nodeSelector, affinity, or resource hints
+      # Scheduler has minimal information for placement decision
+      containers:
+        - name: ollama
+          image: generation-service:v1
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 11434
+          # Minimal resource specification
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+          # Readiness probe waits for model to load
+          readinessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          # Pull model on startup
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    echo "Waiting for Ollama to start..."
+                    sleep 10
+                    echo "Pulling gemma:2b model..."
+                    ollama pull gemma:2b
+                    echo "Model ready!"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-app-service
+  labels:
+    app: rag-app
+    experiment: baseline-uninformed
+spec:
+  selector:
+    app: rag-app
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-deployment
+  labels:
+    app: rag-app
+    experiment: baseline-uninformed
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rag-app
+  template:
+    metadata:
+      labels:
+        app: rag-app
+        experiment: baseline-uninformed
+    spec:
+      # Uses default kube-scheduler
+      # No placement hints
+      containers:
+        - name: rag
+          image: rag-app:v1
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+          env:
+            - name: GENERATION_SERVICE_URL
+              value: "http://generation-service:11434/api/generate"
+            - name: GENERATION_TIMEOUT
+              value: "60"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 10
