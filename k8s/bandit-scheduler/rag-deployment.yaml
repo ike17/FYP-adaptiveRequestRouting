@@ -8,7 +8,7 @@ metadata:
   name: generation-service
   labels:
     app: generation
-    experiment: bandit-scheduler
+    experiment: k3d-scheduler
 spec:
   selector:
     app: generation
@@ -25,7 +25,7 @@ metadata:
   name: generation-deployment
   labels:
     app: generation
-    experiment: bandit-scheduler
+    experiment: k3d-scheduler
 spec:
   replicas: 1
   selector:
@@ -35,12 +35,12 @@ spec:
     metadata:
       labels:
         app: generation
-        experiment: bandit-scheduler
+        experiment: k3d-scheduler
         workload-type: generation
         model-size-b: "2"
     spec:
       # USE BANDIT SCHEDULER
-      schedulerName: bandit-scheduler
+      schedulerName: k3d-scheduler
       
       tolerations:
         - key: "nvidia.com/gpu"
@@ -58,8 +58,7 @@ spec:
           ports:
             - containerPort: 11434
           resources:
-            limits:
-              nvidia.com/gpu: 1
+            # Note: nvidia.com/gpu removed for WSL2 compatibility
             requests:
               memory: "4Gi"
               cpu: "2000m"
@@ -97,7 +96,7 @@ metadata:
   name: rag-app-service
   labels:
     app: rag-app
-    experiment: bandit-scheduler
+    experiment: k3d-scheduler
 spec:
   selector:
     app: rag-app
@@ -114,7 +113,7 @@ metadata:
   name: rag-deployment
   labels:
     app: rag-app
-    experiment: bandit-scheduler
+    experiment: k3d-scheduler
 spec:
   replicas: 1
   selector:
@@ -124,11 +123,11 @@ spec:
     metadata:
       labels:
         app: rag-app
-        experiment: bandit-scheduler
+        experiment: k3d-scheduler
         workload-type: retrieval
     spec:
       # USE BANDIT SCHEDULER
-      schedulerName: bandit-scheduler
+      schedulerName: k3d-scheduler
       
       containers:
         - name: rag

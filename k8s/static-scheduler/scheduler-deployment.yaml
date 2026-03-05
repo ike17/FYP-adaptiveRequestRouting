@@ -36,9 +36,9 @@ spec:
             - name: WATCH_NAMESPACE
               value: "default"
             - name: CPU_NODE_NAME
-              value: "minikube"
+              value: "k3d-fyp-server-0"
             - name: GPU_NODE_NAME
-              value: "minikube-m02"
+              value: "k3d-fyp-agent-0"
             - name: LOG_LEVEL
               value: "INFO"
             - name: MODEL_PATH

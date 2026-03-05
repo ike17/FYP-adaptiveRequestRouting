@@ -2,150 +2,239 @@
 
 ## Project Overview
 
-This project implements and evaluates ML-based Kubernetes schedulers for optimizing Retrieval-Augmented Generation (RAG) workloads on heterogeneous clusters.
+This project implements and evaluates ML-based Kubernetes schedulers for optimising Retrieval-Augmented Generation (RAG) workloads on heterogeneous clusters.
 
 **Research Question:** Can a Detection-Augmented Bandit (DAB) scheduler mitigate performance degradation in piecewise-stationary heterogeneous cluster environments better than Static ML or Default Kubernetes scheduling?
+
+## Architecture
+
+Two-stage RAG pipeline running on a 2-node k3d cluster:
+
+- **generation-service** — Ollama + gemma:2b (LLM inference, compute-heavy)
+- **rag-app** — FastAPI + ChromaDB (retrieval + orchestration, lighter)
+
+The cluster simulates heterogeneous hardware via CPU quotas:
+
+| Node | Label | CPU quota | Role |
+|---|---|---|---|
+| k3d-fyp-server-0 | `node_type=cpu_standard` | 1 CPU | Retrieval |
+| k3d-fyp-agent-0 | `node_type=gpu_accelerated` | 4 CPUs | Generation |
 
 ## Directory Structure
 
 ```
 fyp-rag-scheduler/
-├── README.md                          # This file
-├── generation-service/                # GPU-bound LLM inference service
-│   ├── Dockerfile
-│   └── pull-model.sh
-├── rag-app/                           # CPU-bound retrieval + API service
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── main.py
-│   └── vectordb.py
+├── generation-service/        # Ollama LLM inference service
+├── rag-app/                   # FastAPI retrieval + orchestration
 ├── ml-schedulers/
-│   ├── static/                        # Static ML Scheduler (Random Forest)
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   ├── generate_dataset.py
-│   │   ├── train_model.py
-│   │   └── static_scheduler.py
-│   └── bandit/                        # Adaptive Bandit Scheduler (Thompson Sampling)
-│       ├── Dockerfile
-│       ├── requirements.txt
-│       └── bandit_scheduler.py
-├── k8s/                               # Kubernetes manifests
-│   ├── baseline/
-│   │   ├── 01-uninformed-default.yaml
-│   │   ├── 02-informed-default.yaml
-│   │   └── 03-manual-optimal.yaml
-│   ├── static-scheduler/
-│   │   ├── rbac.yaml
-│   │   ├── scheduler-deployment.yaml
-│   │   └── rag-deployment.yaml
-│   └── bandit-scheduler/
-│       ├── rbac.yaml
-│       ├── scheduler-deployment.yaml
-│       └── rag-deployment.yaml
-├── benchmarks/                        # Evaluation scripts
-│   ├── requirements.txt
-│   ├── run_experiments.py
-│   └── analyze_results.py
-├── scripts/                           # Helper scripts
-│   ├── setup_cluster.sh
-│   ├── build_all.sh
-│   └── run_all_experiments.sh
-└── results/                           # Output directory (gitignored)
-    └── .gitkeep
+│   ├── static/                # Random Forest scheduler
+│   └── bandit/                # Thompson Sampling scheduler (+ adaptive variant)
+├── k8s/
+│   ├── baseline/              # 01-uninformed-default.yaml
+│   ├── static-scheduler/      # RBAC, scheduler deployment, RAG deployment
+│   └── bandit-scheduler/      # RBAC, scheduler deployment, RAG deployment (+ adaptive)
+├── benchmarks/
+│   ├── run_experiments.py     # Query runner with managed port-forward
+│   └── analyze_results.py     # Statistical analysis + chart generation
+├── scripts/
+│   ├── setup_cluster.sh       # Create k3d cluster + node labels + CPU quotas
+│   └── build_all.sh           # Build Docker images + import into k3d
+├── run_all.sh                 # Master experiment runner
+└── results/                   # Output directory
 ```
 
 ## Prerequisites
 
-- Windows 11 with WSL2 (Ubuntu 22.04)
-- Docker Desktop with WSL2 backend
-- NVIDIA GPU with drivers installed in WSL2
-- 32GB RAM recommended (16GB minimum)
-- ~20GB disk space
+- Docker Desktop (Windows) or Docker Engine (Linux)
+- [k3d](https://k3d.io) — `choco install k3d` or `brew install k3d`
+- kubectl — `choco install kubernetes-cli` or `brew install kubectl`
+- Python 3.9+
+- No GPU required — the cluster simulates hardware heterogeneity via CPU quotas
 
 ## Quick Start
 
-### Step 1: Install Dependencies
+### 1. Setup cluster
 
 ```bash
-# Install kubectl
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-
-# Install Minikube
-curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-sudo install minikube-linux-amd64 /usr/local/bin/minikube
-
-# Verify NVIDIA driver in WSL2
-nvidia-smi
-```
-
-### Step 2: Setup Cluster
-
-```bash
-cd fyp-rag-scheduler
-chmod +x scripts/*.sh
 ./scripts/setup_cluster.sh
 ```
 
-### Step 3: Build All Images
+Creates a k3d cluster named `fyp` with one server node (1 CPU) and one agent node (4 CPUs), labels both nodes, and applies Docker CPU quotas to simulate heterogeneous hardware.
+
+Verify:
+
+```bash
+kubectl get nodes --show-labels | grep node_type
+```
+
+### 2. Train the static ML model
+
+```bash
+cd ml-schedulers/static
+python generate_dataset.py   # generates 2000 synthetic training samples
+python train_model.py        # trains Random Forest, saves .pkl files
+cd ../..
+```
+
+Expected output: `Test Set Accuracy: ~0.94`
+
+> **Windows note:** If `generate_dataset.py` produces a UnicodeEncodeError, run with
+> `PYTHONIOENCODING=utf-8 python generate_dataset.py`
+
+### 3. Build and import Docker images
 
 ```bash
 ./scripts/build_all.sh
 ```
 
-### Step 4: Train Static ML Model
+Builds five images and imports them directly into the k3d cluster (no registry needed):
+
+- `generation-service:v1`
+- `rag-app:v1`
+- `static-scheduler:v1`
+- `bandit-scheduler:v1`
+- `bandit-scheduler:v2-adaptive`
+
+### 4. Install benchmark dependencies
 
 ```bash
-cd ml-schedulers/static
-pip install -r requirements.txt
-python generate_dataset.py
-python train_model.py
-cd ../..
+pip install requests pandas numpy matplotlib seaborn scipy tqdm
 ```
 
-### Step 5: Run Experiments
+> **Note:** Do not use pinned versions from `benchmarks/requirements.txt` on Python 3.12+ — scipy has no pre-built wheel and requires a Fortran compiler to build from source.
+
+### 5. Apply RBAC
 
 ```bash
-./scripts/run_all_experiments.sh
+kubectl apply -f k8s/static-scheduler/rbac.yaml
+kubectl apply -f k8s/bandit-scheduler/rbac-adaptive.yaml
 ```
 
-### Step 6: Analyze Results
+### 6. Run all experiments
 
 ```bash
-cd benchmarks
-pip install -r requirements.txt
-python analyze_results.py
+bash run_all.sh
 ```
+
+Runs four experiments in sequence (baseline-uninformed → static-ml → bandit → bandit-adaptive), 100 queries each with a 0.5s inter-query delay. Results are saved to `results/`.
+
+Alternatively, run a single experiment manually:
+
+```bash
+# Deploy
+kubectl apply -f k8s/baseline/01-uninformed-default.yaml
+
+# Wait for pods
+kubectl get pods -w   # wait for 2/2 Running
+
+# Run queries (manages its own port-forward)
+python benchmarks/run_experiments.py \
+  --config baseline-uninformed \
+  --queries 100 \
+  --delay 0.5 \
+  --output results \
+  --port-forward \
+  --skip-wait
+
+# Cleanup
+kubectl delete deployment --all
+kubectl delete service --all
+```
+
+### 7. Analyse results
+
+```bash
+python benchmarks/analyze_results.py --input results --output results/analysis
+```
+
+Produces in `results/analysis/`:
+
+| File | Description |
+|---|---|
+| `latency_comparison.png` | Mean latency bar chart with std error bars |
+| `percentile_comparison.png` | P50 / P95 / P99 comparison |
+| `latency_over_time.png` | Per-query latency showing shock at Q50 |
+| `post_shock_convergence.png` | Bandit convergence post-shock |
+| `statistical_tests.json` | Welch's t-test + Bonferroni + Cohen's d |
+| `comparison_table.csv` | Summary table |
 
 ## Experiment Configurations
 
-| Configuration | Scheduler | Description |
-|--------------|-----------|-------------|
-| baseline-uninformed | default | No hints, random placement |
-| baseline-informed | default | GPU resource requests specified |
-| baseline-optimal | default | Manual nodeSelector (theoretical best) |
-| static-ml | static-scheduler | Random Forest prediction |
-| bandit-adaptive | bandit-scheduler | Thompson Sampling with regime detection |
+| Config | Scheduler | Description |
+|---|---|---|
+| `baseline-uninformed` | default kube-scheduler | No placement hints — worst case |
+| `static-ml` | static-scheduler | Random Forest prediction on node features |
+| `bandit` | k3d-scheduler | Thompson Sampling Beta-Bernoulli bandit |
+| `bandit-adaptive` | k3d-scheduler (adaptive) | Bandit + sliding-window regime detection |
 
-## Expected Results
+## Actual Results (k3d CPU simulation)
 
-- **Static ML:** ~20-25% latency improvement over uninformed baseline
-- **Bandit (normal):** Similar to Static ML after exploration phase
-- **Bandit (shock):** Recovers to CPU-optimal after detecting GPU degradation
+| Scheduler | Successful | Mean (ms) | P50 (ms) | P95 (ms) | vs Baseline |
+|---|---|---|---|---|---|
+| baseline-uninformed | 20/100 | 19,376 | 17,971 | 31,848 | — |
+| static-ml | 56/100 | 8,143 | 5,270 | 26,687 | **+58%** |
+| bandit | 54/100 | 7,335 | 4,883 | 24,840 | **+62%** |
+| bandit-adaptive | 36/100 | 8,162 | 4,673 | 26,409 | **+58%** |
+
+All improvements are statistically significant (Welch's t-test, Bonferroni-corrected p < 0.007, Cohen's d > 1.6).
+
+The lower success rates reflect liveness probe kills caused by slow LLM inference on the wrong node — itself a consequence of poor scheduling. The smart schedulers have higher success rates because they correctly place the generation-service on the 4-CPU agent node.
+
+### Pre/Post shock (Q50 boundary)
+
+| Scheduler | Pre-shock mean | Post-shock mean |
+|---|---|---|
+| static-ml | 7,830ms | 9,178ms (+17% — cannot adapt) |
+| bandit | 7,462ms | 6,837ms (−8% — adapted after shock) |
 
 ## Shock Scenario
 
-At query 50 (out of 100), we simulate GPU degradation:
-- Before shock: GPU=0.5s, CPU=10s → Optimal: GPU
-- After shock: GPU=15s, CPU=10s → Optimal: CPU
+At query 50, the bandit scheduler's reward function flips to simulate GPU degradation. The Thompson Sampling algorithm detects the distribution shift via a sliding window (W=20, threshold=0.4) and re-explores node assignments.
 
-The Bandit scheduler detects this regime change and adapts. The Static scheduler continues failing.
+To adjust the shock point, edit `SIMULATE_REWARDS` / shock counter logic in [ml-schedulers/bandit/bandit_scheduler.py](ml-schedulers/bandit/bandit_scheduler.py).
 
 ## Troubleshooting
 
-See `docs/TROUBLESHOOTING.md` for common issues.
+**Port-forward dies frequently on Windows**
+
+k3d port-forwarding is unstable on Windows/WSL2. The `run_experiments.py` `--port-forward` flag uses `PortForwardManager` to auto-restart the tunnel on each connection failure. Expect many restarts — queries still succeed via the retry mechanism.
+
+**UnicodeEncodeError on Windows console**
+
+Set the console encoding before running Python scripts:
+
+```bash
+set PYTHONIOENCODING=utf-8   # Windows CMD
+$env:PYTHONIOENCODING="utf-8"  # PowerShell
+export PYTHONIOENCODING=utf-8  # Git Bash / WSL
+```
+
+**Pod keeps restarting (CrashLoopBackOff)**
+
+The generation-service liveness probe fires if inference is slow (model on wrong node). If using the baseline config, this is expected — the default scheduler may place the container on the 1-CPU node.
+
+```bash
+kubectl describe pod <pod-name>   # check Events section
+kubectl logs <pod-name>           # check container logs
+```
+
+**Pods stuck in Pending**
+
+```bash
+kubectl describe pod <pod-name>   # look for "Insufficient cpu" or scheduler errors
+kubectl logs -l app=static-scheduler   # check scheduler decisions
+```
+
+**Images not found (ErrImageNeverPull)**
+
+Images must be imported into k3d after every `docker build`:
+
+```bash
+k3d image import generation-service:v1 rag-app:v1 \
+  static-scheduler:v1 bandit-scheduler:v1 bandit-scheduler:v2-adaptive \
+  -c fyp
+```
 
 ## License
 
-MIT License - See LICENSE file
+MIT License — see [LICENSE](LICENSE)

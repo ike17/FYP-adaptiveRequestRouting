@@ -1,6 +1,6 @@
-# k8s/baseline/02-informed-default.yaml
-# Baseline Scenario B: Default scheduler with GPU resource requests
-# Purpose: Measure performance when scheduler has resource hints but no workload-specific intelligence
+# k8s/bandit-scheduler/rag-deployment-adaptive.yaml
+# RAG application deployment for Adaptive Bandit Scheduler
+# Uses pre-loaded generation service image (no postStart model download)
 
 ---
 apiVersion: v1
@@ -9,7 +9,7 @@ metadata:
   name: generation-service
   labels:
     app: generation
-    experiment: baseline-informed
+    experiment: k3d-adaptive
 spec:
   selector:
     app: generation
@@ -26,7 +26,7 @@ metadata:
   name: generation-deployment
   labels:
     app: generation
-    experiment: baseline-informed
+    experiment: k3d-adaptive
 spec:
   replicas: 1
   selector:
@@ -36,11 +36,22 @@ spec:
     metadata:
       labels:
         app: generation
-        experiment: baseline-informed
+        experiment: k3d-adaptive
         workload-type: generation
+        model-size-b: "2"
     spec:
-      # Uses default kube-scheduler
-      # GPU resource request guides scheduler to GPU node
+      # Use bandit scheduler for placement decisions
+      schedulerName: k3d-scheduler
+
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "accelerator"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+
       containers:
         - name: ollama
           image: generation-service:v1
@@ -48,12 +59,11 @@ spec:
           ports:
             - containerPort: 11434
           resources:
-            # GPU request forces placement on GPU-enabled node
-            limits:
-              nvidia.com/gpu: 1
+            # Note: nvidia.com/gpu removed for WSL2 compatibility
             requests:
               memory: "4Gi"
               cpu: "2000m"
+
           readinessProbe:
             httpGet:
               path: /api/tags
@@ -62,12 +72,14 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 30
+
           livenessProbe:
             httpGet:
               path: /api/tags
               port: 11434
             initialDelaySeconds: 60
             periodSeconds: 30
+
           lifecycle:
             postStart:
               exec:
@@ -88,7 +100,7 @@ metadata:
   name: rag-app-service
   labels:
     app: rag-app
-    experiment: baseline-informed
+    experiment: k3d-adaptive
 spec:
   selector:
     app: rag-app
@@ -105,7 +117,7 @@ metadata:
   name: rag-deployment
   labels:
     app: rag-app
-    experiment: baseline-informed
+    experiment: k3d-adaptive
 spec:
   replicas: 1
   selector:
@@ -115,11 +127,12 @@ spec:
     metadata:
       labels:
         app: rag-app
-        experiment: baseline-informed
+        experiment: k3d-adaptive
         workload-type: retrieval
     spec:
-      # Uses default kube-scheduler
-      # Resource requests specified but no node preference
+      # Use bandit scheduler
+      schedulerName: k3d-scheduler
+
       containers:
         - name: rag
           image: rag-app:v1

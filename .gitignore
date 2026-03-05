@@ -18,6 +18,9 @@ ENV/
 # Results (keep structure, ignore data)
 results/*.json
 results/*.csv
+results/*.txt
+results/*.log
+results/runner.log
 results/analysis/
 
 # Logs

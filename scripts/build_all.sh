@@ -1,107 +1,50 @@
 #!/bin/bash
-# scripts/build_all.sh
-# Build all Docker images and load them into Minikube
+# builds all docker images and loads them into the k3d cluster
 
 set -e
 
-echo "============================================================"
-echo "FYP RAG SCHEDULER - BUILD ALL IMAGES"
-echo "============================================================"
-
-# Get script directory
+CLUSTER_NAME="fyp"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Colors
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
-
-print_status() {
-    echo -e "${GREEN}[✓]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[!]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[✗]${NC} $1"
-}
-
-# Check Minikube is running
-if ! minikube status | grep -q "Running"; then
-    print_error "Minikube is not running. Start it first with ./scripts/setup_cluster.sh"
+if ! k3d cluster list 2>/dev/null | grep -q "$CLUSTER_NAME"; then
+    echo "cluster '$CLUSTER_NAME' not found, run setup_cluster.sh first"
     exit 1
 fi
 
-# Configure Docker to use Minikube's Docker daemon
-echo ""
-echo "Configuring Docker to use Minikube's daemon..."
-eval $(minikube docker-env)
-print_status "Docker configured for Minikube"
-
-# Build generation-service
-echo ""
-echo "============================================================"
-echo "Building generation-service (Ollama + LLM)"
-echo "============================================================"
+echo "building generation-service..."
 cd "$PROJECT_ROOT/generation-service"
 docker build -t generation-service:v1 .
-print_status "generation-service:v1 built"
 
-# Build rag-app
-echo ""
-echo "============================================================"
-echo "Building rag-app (FastAPI + ChromaDB)"
-echo "============================================================"
+echo "building rag-app..."
 cd "$PROJECT_ROOT/rag-app"
 docker build -t rag-app:v1 .
-print_status "rag-app:v1 built"
 
-# Check if static scheduler model exists
+# static scheduler is optional, skip if model hasn't been trained yet
 STATIC_MODEL="$PROJECT_ROOT/ml-schedulers/static/static_scheduler_model.pkl"
 if [ -f "$STATIC_MODEL" ]; then
-    echo ""
-    echo "============================================================"
-    echo "Building static-scheduler"
-    echo "============================================================"
+    echo "building static-scheduler..."
     cd "$PROJECT_ROOT/ml-schedulers/static"
     docker build -t static-scheduler:v1 .
-    print_status "static-scheduler:v1 built"
 else
-    print_warning "Static scheduler model not found. Train it first:"
-    echo "  cd ml-schedulers/static"
-    echo "  pip install -r requirements.txt"
-    echo "  python generate_dataset.py"
-    echo "  python train_model.py"
-    echo ""
-    echo "Then re-run this script to build the static-scheduler image."
+    echo "skipping static-scheduler (no trained model found)"
+    echo "  train it with: cd ml-schedulers/static && python train_model.py"
 fi
 
-# Build bandit-scheduler
-echo ""
-echo "============================================================"
-echo "Building bandit-scheduler"
-echo "============================================================"
+echo "building bandit-scheduler:v1..."
 cd "$PROJECT_ROOT/ml-schedulers/bandit"
 docker build -t bandit-scheduler:v1 .
-print_status "bandit-scheduler:v1 built"
 
-# Verify images
-echo ""
-echo "============================================================"
-echo "BUILT IMAGES"
-echo "============================================================"
-docker images | grep -E "(generation-service|rag-app|static-scheduler|bandit-scheduler)" | head -10
+echo "building bandit-scheduler:v2-adaptive..."
+docker build -f Dockerfile.adaptive -t bandit-scheduler:v2-adaptive .
 
-echo ""
-echo "============================================================"
-echo "BUILD COMPLETE"
-echo "============================================================"
-echo ""
-echo "Next steps:"
-echo "  1. Deploy baseline: kubectl apply -f k8s/baseline/03-manual-optimal.yaml"
-echo "  2. Run experiments: ./scripts/run_all_experiments.sh"
-echo ""
+# k3d nodes don't share the host docker daemon so we need to import images explicitly
+echo "importing images into k3d cluster..."
+k3d image import generation-service:v1 rag-app:v1 bandit-scheduler:v1 bandit-scheduler:v2-adaptive -c $CLUSTER_NAME
+
+if [ -f "$STATIC_MODEL" ]; then
+    k3d image import static-scheduler:v1 -c $CLUSTER_NAME
+fi
+
+echo "done"
+docker images | grep -E "(generation-service|rag-app|static-scheduler|bandit-scheduler)"

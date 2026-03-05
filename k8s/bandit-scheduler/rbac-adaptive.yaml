@@ -1,60 +1,69 @@
-# k8s/bandit-scheduler/rbac.yaml
-# RBAC configuration for Bandit Scheduler
+# k8s/bandit-scheduler/rbac-adaptive.yaml
+# RBAC for Adaptive Bandit Scheduler with pod eviction permissions
 
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bandit-scheduler
+  name: k3d-scheduler
   namespace: default
   labels:
-    app: bandit-scheduler
+    app: k3d-scheduler
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: bandit-scheduler-role
+  name: k3d-scheduler-role
   labels:
-    app: bandit-scheduler
+    app: k3d-scheduler
 rules:
+  # Pod management - includes DELETE for eviction
   - apiGroups: [""]
     resources: ["pods"]
-    verbs: ["get", "list", "watch"]
-  
+    verbs: ["get", "list", "watch", "delete"]
+
+  # Node information
   - apiGroups: [""]
     resources: ["nodes"]
     verbs: ["get", "list"]
-  
+
+  # Pod binding (scheduling)
   - apiGroups: [""]
     resources: ["pods/binding"]
     verbs: ["create"]
-  
+
   - apiGroups: [""]
     resources: ["bindings"]
     verbs: ["create"]
-  
+
+  # Events for logging
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["create", "patch"]
-  
-  # Access to services for metrics fetching
+
+  # Service access for metrics endpoint
   - apiGroups: [""]
     resources: ["services"]
+    verbs: ["get", "list"]
+
+  # Endpoints for service discovery
+  - apiGroups: [""]
+    resources: ["endpoints"]
     verbs: ["get", "list"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: bandit-scheduler-binding
+  name: k3d-scheduler-binding
   labels:
-    app: bandit-scheduler
+    app: k3d-scheduler
 subjects:
   - kind: ServiceAccount
-    name: bandit-scheduler
+    name: k3d-scheduler
     namespace: default
 roleRef:
   kind: ClusterRole
-  name: bandit-scheduler-role
+  name: k3d-scheduler-role
   apiGroup: rbac.authorization.k8s.io

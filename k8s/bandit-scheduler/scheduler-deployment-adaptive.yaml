@@ -1,5 +1,5 @@
-# k8s/bandit-scheduler/scheduler-deployment.yaml
-# Deployment for the Adaptive Bandit Scheduler
+# k8s/bandit-scheduler/scheduler-deployment-adaptive.yaml
+# Deployment for the Adaptive Bandit Scheduler with eviction support
 
 ---
 apiVersion: apps/v1
@@ -20,43 +20,72 @@ spec:
         app: k3d-scheduler
     spec:
       serviceAccountName: k3d-scheduler
-      
-      # Run on CPU node
+
+      # Run scheduler on CPU node
       nodeSelector:
         node_type: cpu_standard
-      
+
       containers:
         - name: scheduler
-          image: bandit-scheduler:v1
+          image: bandit-scheduler:v2-adaptive
           imagePullPolicy: Never
-          
+
           env:
+            # Scheduler identity
             - name: SCHEDULER_NAME
               value: "k3d-scheduler"
             - name: WATCH_NAMESPACE
               value: "default"
+
+            # Node mapping
             - name: CPU_NODE_NAME
               value: "k3d-fyp-server-0"
             - name: GPU_NODE_NAME
               value: "k3d-fyp-agent-0"
-            - name: LOG_LEVEL
-              value: "INFO"
+
             # Thompson Sampling parameters
+            - name: INITIAL_ALPHA
+              value: "1.0"
+            - name: INITIAL_BETA
+              value: "1.0"
             - name: WINDOW_SIZE
               value: "20"
             - name: RESET_THRESHOLD
               value: "0.4"
-            # Shock simulation
+
+            # SIMULATE_REWARDS=true because k3d is CPU-only — both nodes share the
+            # same hardware so real latency gives no useful signal. Simulation lets
+            # the shock mechanism work properly.
+            # Switch to false when GPU is available (see docs/gpu-setup.md).
+            - name: SIMULATE_REWARDS
+              value: "true"
             - name: SHOCK_ENABLED
               value: "true"
             - name: SHOCK_QUERY
               value: "50"
-            - name: SIMULATE_REWARDS
-              value: "true"
-            # Real metrics endpoint (when not simulating)
+
+            # Metrics collection (REAL metrics, not simulated)
             - name: RAG_APP_METRICS_URL
               value: "http://rag-app-service:8000/metrics"
-          
+            - name: METRICS_POLL_INTERVAL
+              value: "2.0"
+
+            # Eviction configuration
+            - name: EVICTION_ENABLED
+              value: "true"
+            - name: EVICTION_COOLDOWN
+              value: "30.0"
+            - name: MIN_QUERIES_BEFORE_EVICTION
+              value: "10"
+            - name: EVICTION_TARGET_LABELS
+              value: "app=generation"
+
+            # Logging
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: LOG_FILE
+              value: "/app/logs/adaptive_bandit.jsonl"
+
           resources:
             requests:
               memory: "128Mi"
@@ -64,13 +93,13 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
-          
+
           volumeMounts:
             - name: logs
               mountPath: /app/logs
-      
+
       volumes:
         - name: logs
           emptyDir: {}
-      
+
       restartPolicy: Always
