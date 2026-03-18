@@ -118,6 +118,16 @@ bash run_all.sh
 
 Runs four experiments in sequence (baseline-uninformed → static-ml → bandit → bandit-adaptive), 100 queries each with a 0.5s inter-query delay. Results are saved to `results/`.
 
+### Run multiple iterations (Optional)
+
+To easily assess statistical variations and obtain more robust evaluations over multiple runs (e.g. 10x), run:
+
+```bash
+bash run_multiple.sh
+```
+
+This runs the experiments 10 times and outputs individual results in `results/run_{1..10}/` and then performs aggregated statistical analyses (n=1000) inside `results/aggregated_analysis/`.
+
 Alternatively, run a single experiment manually:
 
 ```bash

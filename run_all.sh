@@ -2,7 +2,7 @@
 set -e
 
 PROJECT_ROOT="/c/Users/shaik/Nextcloud/Lectures/FYP/fyp-rag-scheduler/fyp-rag-scheduler"
-RESULTS_DIR="$PROJECT_ROOT/results"
+RESULTS_DIR="${RESULTS_DIR:-$PROJECT_ROOT/results}"
 QUERIES=100
 DELAY=0.5
 
@@ -26,9 +26,12 @@ wait_for_pods() {
 
 cleanup() {
     log "cleaning up..."
+    # Force kill any lingering port-forwards left by python scripts on Windows
+    taskkill //F //IM kubectl.exe 2>/dev/null || killall kubectl 2>/dev/null || true
+    
     kubectl delete service generation-service rag-app-service --ignore-not-found=true 2>/dev/null || true
     kubectl delete deployment --all --ignore-not-found=true 2>/dev/null || true
-    sleep 5
+    sleep 15
 }
 
 run_experiment() {
@@ -58,13 +61,13 @@ run_experiment() {
         log "ERROR: health check failed for $name"; return 1
     fi
     log "running $QUERIES queries..."
-    python "$PROJECT_ROOT/benchmarks/run_experiments.py" \
+    python3 "$PROJECT_ROOT/benchmarks/run_experiments.py" \
         --config "$name" \
         --queries "$QUERIES" \
         --delay "$DELAY" \
         --output "$RESULTS_DIR" \
         --port-forward \
-        --skip-wait
+        --skip-wait || true
     log "experiment $name DONE"
 }
 
@@ -79,7 +82,7 @@ run_experiment "bandit" "k8s/bandit-scheduler/rag-deployment.yaml" "k8s/bandit-s
 run_experiment "bandit-adaptive" "k8s/bandit-scheduler/rag-deployment-adaptive.yaml" "k8s/bandit-scheduler/scheduler-deployment-adaptive.yaml"
 
 log "=== ALL EXPERIMENTS DONE ==="
-python "$PROJECT_ROOT/benchmarks/analyze_results.py" \
+python3 "$PROJECT_ROOT/benchmarks/analyze_results.py" \
     --input "$RESULTS_DIR" \
     --output "$RESULTS_DIR/analysis"
 log "=== ANALYSIS DONE ==="

@@ -32,6 +32,8 @@ logs/
 .vscode/
 *.swp
 *.swo
+.claude/
+.qwen/
 
 # OS
 .DS_Store
@@ -46,6 +48,9 @@ ml-schedulers/static/training_data.csv
 ml-schedulers/static/dataset_stats.json
 ml-schedulers/static/training_report.json
 ml-schedulers/static/*.png
+
+results/*
+results/**
 
 # Temporary files
 *.tmp
