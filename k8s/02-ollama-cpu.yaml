@@ -1,0 +1,81 @@
+# k8s/02-ollama-cpu.yaml
+# Ollama deployment pinned to the CPU node (Proxmox) via nodeSelector.
+# Runs gemma:2b in CPU-only mode — slower baseline, but useful when the GPU is
+# saturated or under shock. The smart-gateway routes to this pod as arm 1 (cpu).
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-cpu-service
+  labels:
+    app: ollama-cpu
+spec:
+  selector:
+    app: ollama-cpu
+  ports:
+    - port: 11434
+      targetPort: 11434
+      name: ollama
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-cpu
+  labels:
+    app: ollama-cpu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama-cpu
+  template:
+    metadata:
+      labels:
+        app: ollama-cpu
+    spec:
+      nodeSelector:
+        node_type: cpu_standard
+      containers:
+        - name: ollama
+          image: generation-service:v1
+          imagePullPolicy: Never
+          env:
+            - name: OLLAMA_NUM_PARALLEL
+              value: "2"
+            - name: OLLAMA_MAX_QUEUE
+              value: "50"
+          ports:
+            - containerPort: 11434
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    echo "Waiting for Ollama to start..."
+                    sleep 10
+                    echo "Pulling gemma:2b model..."
+                    ollama pull gemma:2b
+                    echo "Model ready!"

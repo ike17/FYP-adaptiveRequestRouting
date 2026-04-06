@@ -1,0 +1,7 @@
+{
+  "total_samples": 3000,
+  "gpu_samples": 2594,
+  "cpu_samples": 406,
+  "gpu_pct": 86.5,
+  "cpu_pct": 13.5
+}

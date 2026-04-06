@@ -1,0 +1,5 @@
+Mode,Total,Failures,Failure Rate,Connection (502),Unavailable (503),Timeout (504)
+Baseline,1000,494,49.4%,17,464,13
+Static ML,1000,509,50.9%,10,481,18
+Bandit,1000,235,23.5%,26,188,21
+Adaptive,1000,316,31.6%,18,282,16

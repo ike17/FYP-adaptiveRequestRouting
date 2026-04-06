@@ -1,0 +1,30 @@
+{
+  "model_type": "RandomForestClassifier",
+  "feature_names": [
+    "prompt_length",
+    "gpu_in_flight",
+    "cpu_in_flight"
+  ],
+  "training_samples": 2400,
+  "test_samples": 600,
+  "cv_accuracy_mean": 0.9345833333333333,
+  "cv_accuracy_std": 0.004289845892077902,
+  "test_accuracy": 0.9633333333333334,
+  "test_f1": 0.9618430788202651,
+  "test_roc_auc": 0.8765194224410666,
+  "feature_importance": {
+    "prompt_length": 0.2566762735704735,
+    "gpu_in_flight": 0.6880307000390214,
+    "cpu_in_flight": 0.055293026390505026
+  },
+  "confusion_matrix": [
+    [
+      515,
+      4
+    ],
+    [
+      18,
+      63
+    ]
+  ]
+}

@@ -1,0 +1,902 @@
+[
+  {
+    "success": false,
+    "prompt": "What is Kubernetes and how does it work?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1598.078966140747,
+    "timestamp": "2026-03-29T06:28:27.734593",
+    "query_number": 1,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain the difference between pods and containers in Kubernetes.",
+    "error": "HTTP 503",
+    "measured_time_ms": 2819.4680213928223,
+    "timestamp": "2026-03-29T06:28:29.052312",
+    "query_number": 2,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does machine learning improve scheduling decisions in heterogeneous clusters?",
+    "error": "HTTP 503",
+    "measured_time_ms": 2091.75443649292,
+    "timestamp": "2026-03-29T06:28:28.946818",
+    "query_number": 3,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is Retrieval-Augmented Generation and why is it useful?",
+    "error": "HTTP 503",
+    "measured_time_ms": 2359.5738410949707,
+    "timestamp": "2026-03-29T06:28:29.757546",
+    "query_number": 4,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Describe the Thompson Sampling algorithm and its applications to multi-armed bandits.",
+    "error": "HTTP 503",
+    "measured_time_ms": 1602.3640632629395,
+    "timestamp": "2026-03-29T06:28:29.336993",
+    "query_number": 5,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What are the benefits of GPU acceleration for large language model inference?",
+    "error": "HTTP 503",
+    "measured_time_ms": 2396.412134170532,
+    "timestamp": "2026-03-29T06:28:31.343263",
+    "query_number": 6,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How do contextual bandits differ from standard multi-armed bandits?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1953.7198543548584,
+    "timestamp": "2026-03-29T06:28:31.344025",
+    "query_number": 7,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain piecewise stationary environments and how they challenge online learning algorithms.",
+    "error": "HTTP 503",
+    "measured_time_ms": 2021.7485427856445,
+    "timestamp": "2026-03-29T06:28:31.432982",
+    "query_number": 8,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Random Forest classifier and how does it make predictions?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1828.9427757263184,
+    "timestamp": "2026-03-29T06:28:31.586534",
+    "query_number": 9,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does vector similarity search work and what distance metrics are commonly used?",
+    "error": "HTTP 503",
+    "measured_time_ms": 891.8807506561279,
+    "timestamp": "2026-03-29T06:28:32.235194",
+    "query_number": 10,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What are the challenges of workload scheduling in heterogeneous compute clusters?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1935.3878498077393,
+    "timestamp": "2026-03-29T06:28:33.680383",
+    "query_number": 11,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain the exploration-exploitation tradeoff in reinforcement learning.",
+    "error": "HTTP 503",
+    "measured_time_ms": 813.4462833404541,
+    "timestamp": "2026-03-29T06:28:34.269163",
+    "query_number": 12,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is semantic search and how does it differ from keyword-based search?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1698.531150817871,
+    "timestamp": "2026-03-29T06:28:35.352809",
+    "query_number": 13,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How do transformer models use attention mechanisms to process sequences?",
+    "error": "HTTP 504",
+    "measured_time_ms": 60662.031412124634,
+    "timestamp": "2026-03-29T06:29:34.536712",
+    "query_number": 14,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Describe online learning algorithms and how they adapt to non-stationary distributions.",
+    "error": "HTTP 503",
+    "measured_time_ms": 1630.793571472168,
+    "timestamp": "2026-03-29T06:28:36.449760",
+    "query_number": 15,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Beta distribution and how is it used as a conjugate prior in Bayesian inference?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1749.0341663360596,
+    "timestamp": "2026-03-29T06:28:37.570605",
+    "query_number": 16,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain how Kubernetes node affinity and tolerations control pod placement.",
+    "error": "HTTP 503",
+    "measured_time_ms": 6560.419082641602,
+    "timestamp": "2026-03-29T06:28:42.938349",
+    "query_number": 17,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What metrics are commonly used to evaluate LLM inference performance in production?",
+    "error": "HTTP 503",
+    "measured_time_ms": 4211.256742477417,
+    "timestamp": "2026-03-29T06:28:40.717348",
+    "query_number": 18,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does a vector database store and retrieve high-dimensional embeddings efficiently?",
+    "error": "HTTP 503",
+    "measured_time_ms": 840.3408527374268,
+    "timestamp": "2026-03-29T06:28:38.410978",
+    "query_number": 19,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is the difference between throughput and latency in distributed systems?",
+    "error": "HTTP 503",
+    "measured_time_ms": 706.1028480529785,
+    "timestamp": "2026-03-29T06:28:39.117113",
+    "query_number": 20,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is Kubernetes and how does it work?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1858.9463233947754,
+    "timestamp": "2026-03-29T06:28:40.976118",
+    "query_number": 21,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain the difference between pods and containers in Kubernetes.",
+    "error": "HTTP 503",
+    "measured_time_ms": 1531.770944595337,
+    "timestamp": "2026-03-29T06:28:42.249150",
+    "query_number": 22,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does machine learning improve scheduling decisions in heterogeneous clusters?",
+    "error": "HTTP 503",
+    "measured_time_ms": 5832.499027252197,
+    "timestamp": "2026-03-29T06:28:46.808670",
+    "query_number": 23,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is Retrieval-Augmented Generation and why is it useful?",
+    "error": "HTTP 503",
+    "measured_time_ms": 19738.072872161865,
+    "timestamp": "2026-03-29T06:29:01.987263",
+    "query_number": 24,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Describe the Thompson Sampling algorithm and its applications to multi-armed bandits.",
+    "error": "HTTP 503",
+    "measured_time_ms": 1620.9702491760254,
+    "timestamp": "2026-03-29T06:28:44.559359",
+    "query_number": 25,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What are the benefits of GPU acceleration for large language model inference?",
+    "error": "HTTP 503",
+    "measured_time_ms": 483.5658073425293,
+    "timestamp": "2026-03-29T06:28:45.042963",
+    "query_number": 26,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How do contextual bandits differ from standard multi-armed bandits?",
+    "error": "HTTP 503",
+    "measured_time_ms": 11921.62537574768,
+    "timestamp": "2026-03-29T06:28:56.964619",
+    "query_number": 27,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain piecewise stationary environments and how they challenge online learning algorithms.",
+    "error": "HTTP 503",
+    "measured_time_ms": 517.6677703857422,
+    "timestamp": "2026-03-29T06:28:47.326435",
+    "query_number": 28,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Random Forest classifier and how does it make predictions?",
+    "error": "HTTP 503",
+    "measured_time_ms": 723.6452102661133,
+    "timestamp": "2026-03-29T06:28:48.050112",
+    "query_number": 29,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does vector similarity search work and what distance metrics are commonly used?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1749.0811347961426,
+    "timestamp": "2026-03-29T06:28:49.799223",
+    "query_number": 30,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What are the challenges of workload scheduling in heterogeneous compute clusters?",
+    "error": "HTTP 503",
+    "measured_time_ms": 561.8000030517578,
+    "timestamp": "2026-03-29T06:28:50.361061",
+    "query_number": 31,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain the exploration-exploitation tradeoff in reinforcement learning.",
+    "error": "HTTP 503",
+    "measured_time_ms": 658.0383777618408,
+    "timestamp": "2026-03-29T06:28:51.019134",
+    "query_number": 32,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is semantic search and how does it differ from keyword-based search?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1650.0484943389893,
+    "timestamp": "2026-03-29T06:28:52.669240",
+    "query_number": 33,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How do transformer models use attention mechanisms to process sequences?",
+    "error": "HTTP 503",
+    "measured_time_ms": 603.7333011627197,
+    "timestamp": "2026-03-29T06:28:53.273007",
+    "query_number": 34,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Describe online learning algorithms and how they adapt to non-stationary distributions.",
+    "error": "HTTP 503",
+    "measured_time_ms": 708.5084915161133,
+    "timestamp": "2026-03-29T06:28:53.981566",
+    "query_number": 35,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Beta distribution and how is it used as a conjugate prior in Bayesian inference?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1707.3159217834473,
+    "timestamp": "2026-03-29T06:28:55.688918",
+    "query_number": 36,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain how Kubernetes node affinity and tolerations control pod placement.",
+    "error": "HTTP 503",
+    "measured_time_ms": 586.5674018859863,
+    "timestamp": "2026-03-29T06:28:56.275528",
+    "query_number": 37,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What metrics are commonly used to evaluate LLM inference performance in production?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1837.646484375,
+    "timestamp": "2026-03-29T06:28:58.113209",
+    "query_number": 38,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does a vector database store and retrieve high-dimensional embeddings efficiently?",
+    "error": "HTTP 503",
+    "measured_time_ms": 7993.825912475586,
+    "timestamp": "2026-03-29T06:29:04.958479",
+    "query_number": 39,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is the difference between throughput and latency in distributed systems?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1465.9228324890137,
+    "timestamp": "2026-03-29T06:28:59.579167",
+    "query_number": 40,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is Kubernetes and how does it work?",
+    "error": "HTTP 503",
+    "measured_time_ms": 769.1693305969238,
+    "timestamp": "2026-03-29T06:29:00.348388",
+    "query_number": 41,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain the difference between pods and containers in Kubernetes.",
+    "error": "HTTP 503",
+    "measured_time_ms": 695.6238746643066,
+    "timestamp": "2026-03-29T06:29:01.044066",
+    "query_number": 42,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does machine learning improve scheduling decisions in heterogeneous clusters?",
+    "error": "HTTP 503",
+    "measured_time_ms": 11975.55947303772,
+    "timestamp": "2026-03-29T06:29:13.019690",
+    "query_number": 43,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is Retrieval-Augmented Generation and why is it useful?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1499.8273849487305,
+    "timestamp": "2026-03-29T06:29:03.487126",
+    "query_number": 44,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Describe the Thompson Sampling algorithm and its applications to multi-armed bandits.",
+    "error": "HTTP 503",
+    "measured_time_ms": 583.9462280273438,
+    "timestamp": "2026-03-29T06:29:04.071111",
+    "query_number": 45,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What are the benefits of GPU acceleration for large language model inference?",
+    "error": "HTTP 503",
+    "measured_time_ms": 2878.1797885894775,
+    "timestamp": "2026-03-29T06:29:06.949334",
+    "query_number": 46,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How do contextual bandits differ from standard multi-armed bandits?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1746.7281818389893,
+    "timestamp": "2026-03-29T06:29:06.705245",
+    "query_number": 47,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain piecewise stationary environments and how they challenge online learning algorithms.",
+    "error": "HTTP 503",
+    "measured_time_ms": 1715.3103351593018,
+    "timestamp": "2026-03-29T06:29:08.420598",
+    "query_number": 48,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Random Forest classifier and how does it make predictions?",
+    "error": "HTTP 503",
+    "measured_time_ms": 4991.274118423462,
+    "timestamp": "2026-03-29T06:29:11.940641",
+    "query_number": 49,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does vector similarity search work and what distance metrics are commonly used?",
+    "error": "HTTP 503",
+    "measured_time_ms": 727.6546955108643,
+    "timestamp": "2026-03-29T06:29:09.148291",
+    "query_number": 50,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What are the challenges of workload scheduling in heterogeneous compute clusters?",
+    "error": "HTTP 503",
+    "measured_time_ms": 886.6291046142578,
+    "timestamp": "2026-03-29T06:29:10.034954",
+    "query_number": 51,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain the exploration-exploitation tradeoff in reinforcement learning.",
+    "error": "HTTP 503",
+    "measured_time_ms": 1914.780616760254,
+    "timestamp": "2026-03-29T06:29:11.949775",
+    "query_number": 52,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is semantic search and how does it differ from keyword-based search?",
+    "error": "HTTP 503",
+    "measured_time_ms": 2220.2131748199463,
+    "timestamp": "2026-03-29T06:29:14.160890",
+    "query_number": 53,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How do transformer models use attention mechanisms to process sequences?",
+    "error": "HTTP 503",
+    "measured_time_ms": 8773.054361343384,
+    "timestamp": "2026-03-29T06:29:20.722868",
+    "query_number": 54,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Describe online learning algorithms and how they adapt to non-stationary distributions.",
+    "error": "HTTP 503",
+    "measured_time_ms": 12566.751480102539,
+    "timestamp": "2026-03-29T06:29:25.586487",
+    "query_number": 55,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Beta distribution and how is it used as a conjugate prior in Bayesian inference?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1239.959478378296,
+    "timestamp": "2026-03-29T06:29:15.400892",
+    "query_number": 56,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain how Kubernetes node affinity and tolerations control pod placement.",
+    "error": "HTTP 503",
+    "measured_time_ms": 693.3691501617432,
+    "timestamp": "2026-03-29T06:29:16.094300",
+    "query_number": 57,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What metrics are commonly used to evaluate LLM inference performance in production?",
+    "error": "HTTP 503",
+    "measured_time_ms": 896.6665267944336,
+    "timestamp": "2026-03-29T06:29:16.991020",
+    "query_number": 58,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does a vector database store and retrieve high-dimensional embeddings efficiently?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1006.1135292053223,
+    "timestamp": "2026-03-29T06:29:17.997172",
+    "query_number": 59,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is the difference between throughput and latency in distributed systems?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1023.3063697814941,
+    "timestamp": "2026-03-29T06:29:19.020515",
+    "query_number": 60,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is Kubernetes and how does it work?",
+    "error": "HTTP 503",
+    "measured_time_ms": 3902.1012783050537,
+    "timestamp": "2026-03-29T06:29:22.922653",
+    "query_number": 61,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain the difference between pods and containers in Kubernetes.",
+    "error": "HTTP 503",
+    "measured_time_ms": 404.75940704345703,
+    "timestamp": "2026-03-29T06:29:21.127664",
+    "query_number": 62,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does machine learning improve scheduling decisions in heterogeneous clusters?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1640.9883499145508,
+    "timestamp": "2026-03-29T06:29:22.768790",
+    "query_number": 63,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is Retrieval-Augmented Generation and why is it useful?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1471.388339996338,
+    "timestamp": "2026-03-29T06:29:24.240215",
+    "query_number": 64,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Describe the Thompson Sampling algorithm and its applications to multi-armed bandits.",
+    "error": "HTTP 504",
+    "measured_time_ms": 65730.49354553223,
+    "timestamp": "2026-03-29T06:30:28.653182",
+    "query_number": 65,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What are the benefits of GPU acceleration for large language model inference?",
+    "error": "HTTP 500",
+    "measured_time_ms": 64420.08328437805,
+    "timestamp": "2026-03-29T06:30:28.660329",
+    "query_number": 66,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How do contextual bandits differ from standard multi-armed bandits?",
+    "error": "HTTP 504",
+    "measured_time_ms": 62914.82758522034,
+    "timestamp": "2026-03-29T06:30:28.511240",
+    "query_number": 67,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain piecewise stationary environments and how they challenge online learning algorithms.",
+    "error": "HTTP 504",
+    "measured_time_ms": 61769.599199295044,
+    "timestamp": "2026-03-29T06:30:36.308151",
+    "query_number": 68,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Random Forest classifier and how does it make predictions?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1797.2240447998047,
+    "timestamp": "2026-03-29T06:30:30.329768",
+    "query_number": 69,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does vector similarity search work and what distance metrics are commonly used?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1669.4941520690918,
+    "timestamp": "2026-03-29T06:30:30.329850",
+    "query_number": 70,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What are the challenges of workload scheduling in heterogeneous compute clusters?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1651.1671543121338,
+    "timestamp": "2026-03-29T06:30:30.323956",
+    "query_number": 71,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain the exploration-exploitation tradeoff in reinforcement learning.",
+    "error": "HTTP 503",
+    "measured_time_ms": 1298.0411052703857,
+    "timestamp": "2026-03-29T06:30:31.622030",
+    "query_number": 72,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is semantic search and how does it differ from keyword-based search?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1299.2079257965088,
+    "timestamp": "2026-03-29T06:30:31.629080",
+    "query_number": 73,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How do transformer models use attention mechanisms to process sequences?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1297.783613204956,
+    "timestamp": "2026-03-29T06:30:31.628428",
+    "query_number": 74,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Describe online learning algorithms and how they adapt to non-stationary distributions.",
+    "error": "HTTP 503",
+    "measured_time_ms": 899.6827602386475,
+    "timestamp": "2026-03-29T06:30:32.521743",
+    "query_number": 75,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Beta distribution and how is it used as a conjugate prior in Bayesian inference?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1195.3659057617188,
+    "timestamp": "2026-03-29T06:30:32.824134",
+    "query_number": 76,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain how Kubernetes node affinity and tolerations control pod placement.",
+    "error": "HTTP 503",
+    "measured_time_ms": 4233.875036239624,
+    "timestamp": "2026-03-29T06:30:35.862995",
+    "query_number": 77,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What metrics are commonly used to evaluate LLM inference performance in production?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1001.2211799621582,
+    "timestamp": "2026-03-29T06:30:33.522990",
+    "query_number": 78,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does a vector database store and retrieve high-dimensional embeddings efficiently?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1831.0797214508057,
+    "timestamp": "2026-03-29T06:30:34.655243",
+    "query_number": 79,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is the difference between throughput and latency in distributed systems?",
+    "error": "HTTP 503",
+    "measured_time_ms": 4525.146245956421,
+    "timestamp": "2026-03-29T06:30:38.048306",
+    "query_number": 80,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is Kubernetes and how does it work?",
+    "error": "HTTP 503",
+    "measured_time_ms": 11519.915103912354,
+    "timestamp": "2026-03-29T06:30:46.175417",
+    "query_number": 81,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain the difference between pods and containers in Kubernetes.",
+    "error": "HTTP 503",
+    "measured_time_ms": 19771.077156066895,
+    "timestamp": "2026-03-29T06:30:55.634337",
+    "query_number": 82,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does machine learning improve scheduling decisions in heterogeneous clusters?",
+    "error": "HTTP 503",
+    "measured_time_ms": 428.5316467285156,
+    "timestamp": "2026-03-29T06:30:36.736717",
+    "query_number": 83,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is Retrieval-Augmented Generation and why is it useful?",
+    "error": "HTTP 503",
+    "measured_time_ms": 3600.886106491089,
+    "timestamp": "2026-03-29T06:30:40.337643",
+    "query_number": 84,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Describe the Thompson Sampling algorithm and its applications to multi-armed bandits.",
+    "error": "HTTP 503",
+    "measured_time_ms": 280.8542251586914,
+    "timestamp": "2026-03-29T06:30:38.329195",
+    "query_number": 85,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What are the benefits of GPU acceleration for large language model inference?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1496.2818622589111,
+    "timestamp": "2026-03-29T06:30:39.825508",
+    "query_number": 86,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How do contextual bandits differ from standard multi-armed bandits?",
+    "error": "HTTP 503",
+    "measured_time_ms": 11522.588014602661,
+    "timestamp": "2026-03-29T06:30:51.348128",
+    "query_number": 87,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain piecewise stationary environments and how they challenge online learning algorithms.",
+    "error": "HTTP 503",
+    "measured_time_ms": 1415.1935577392578,
+    "timestamp": "2026-03-29T06:30:41.752869",
+    "query_number": 88,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Random Forest classifier and how does it make predictions?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1350.205659866333,
+    "timestamp": "2026-03-29T06:30:43.103105",
+    "query_number": 89,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does vector similarity search work and what distance metrics are commonly used?",
+    "error": "HTTP 503",
+    "measured_time_ms": 295.43542861938477,
+    "timestamp": "2026-03-29T06:30:43.398572",
+    "query_number": 90,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What are the challenges of workload scheduling in heterogeneous compute clusters?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1558.0086708068848,
+    "timestamp": "2026-03-29T06:30:44.956611",
+    "query_number": 91,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain the exploration-exploitation tradeoff in reinforcement learning.",
+    "error": "HTTP 503",
+    "measured_time_ms": 7415.618658065796,
+    "timestamp": "2026-03-29T06:30:52.372261",
+    "query_number": 92,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is semantic search and how does it differ from keyword-based search?",
+    "error": "HTTP 503",
+    "measured_time_ms": 245.32008171081543,
+    "timestamp": "2026-03-29T06:30:46.420769",
+    "query_number": 93,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How do transformer models use attention mechanisms to process sequences?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1597.0110893249512,
+    "timestamp": "2026-03-29T06:30:48.017812",
+    "query_number": 94,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Describe online learning algorithms and how they adapt to non-stationary distributions.",
+    "error": "HTTP 503",
+    "measured_time_ms": 316.9708251953125,
+    "timestamp": "2026-03-29T06:30:48.334813",
+    "query_number": 95,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Beta distribution and how is it used as a conjugate prior in Bayesian inference?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1554.9540519714355,
+    "timestamp": "2026-03-29T06:30:49.889800",
+    "query_number": 96,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "Explain how Kubernetes node affinity and tolerations control pod placement.",
+    "error": "HTTP 503",
+    "measured_time_ms": 1459.449291229248,
+    "timestamp": "2026-03-29T06:30:51.349277",
+    "query_number": 97,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What metrics are commonly used to evaluate LLM inference performance in production?",
+    "error": "HTTP 503",
+    "measured_time_ms": 3772.8044986724854,
+    "timestamp": "2026-03-29T06:30:55.120964",
+    "query_number": 98,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "How does a vector database store and retrieve high-dimensional embeddings efficiently?",
+    "error": "HTTP 503",
+    "measured_time_ms": 5821.8536376953125,
+    "timestamp": "2026-03-29T06:30:57.171250",
+    "query_number": 99,
+    "config": "static"
+  },
+  {
+    "success": false,
+    "prompt": "What is the difference between throughput and latency in distributed systems?",
+    "error": "HTTP 503",
+    "measured_time_ms": 1278.0306339263916,
+    "timestamp": "2026-03-29T06:30:53.650326",
+    "query_number": 100,
+    "config": "static"
+  }
+]

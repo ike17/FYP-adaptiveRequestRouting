@@ -1,0 +1,16 @@
+{
+  "config": "adaptive",
+  "total_queries": 100,
+  "successful_queries": 95,
+  "success_rate": 0.95,
+  "mean_latency_ms": 9322.710421052632,
+  "min_latency_ms": 492.17,
+  "max_latency_ms": 28086.61,
+  "p50_latency_ms": 4283.69,
+  "p95_latency_ms": 23444.948,
+  "p99_latency_ms": 24268.58380000001,
+  "std_latency_ms": 8701.046471152242,
+  "timestamp": "2026-03-29T10:07:50.582241",
+  "mean_tokens_per_sec": 61.97,
+  "median_tokens_per_sec": 15.52
+}

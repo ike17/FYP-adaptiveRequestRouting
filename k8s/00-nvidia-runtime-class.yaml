@@ -1,0 +1,11 @@
+# k8s/00-nvidia-runtime-class.yaml
+# Must be applied before the NVIDIA device plugin DaemonSet.
+# The device plugin DaemonSet is patched to set runtimeClassName: nvidia,
+# which tells containerd to use the nvidia-container-runtime for GPU pods.
+# Apply first: kubectl apply -f k8s/00-nvidia-runtime-class.yaml
+
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: nvidia
+handler: nvidia

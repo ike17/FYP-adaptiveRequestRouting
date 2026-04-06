@@ -1,0 +1,82 @@
+# k8s/03-gateway-app.yaml
+# Smart gateway — exactly 1 replica so in-memory queue counters are accurate
+# across all concurrent requests. ROUTING_MODE is set to "bandit" by default;
+# run_all.sh overrides it per experiment via `kubectl set env`.
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: smart-gateway-service
+  labels:
+    app: smart-gateway
+spec:
+  selector:
+    app: smart-gateway
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-gateway
+  labels:
+    app: smart-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: smart-gateway
+  template:
+    metadata:
+      labels:
+        app: smart-gateway
+    spec:
+      nodeSelector:
+        node_type: cpu_standard
+      containers:
+        - name: gateway
+          image: smart-gateway:v1
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          env:
+            - name: GPU_OLLAMA_URL
+              value: "http://ollama-gpu-service:11434"
+            - name: CPU_OLLAMA_URL
+              value: "http://ollama-cpu-service:11434"
+            - name: ROUTING_MODE
+              value: "bandit"
+            - name: MODEL_NAME
+              value: "gemma:2b"
+            - name: TARGET_LATENCY_MS
+              value: "5000"
+            - name: GENERATION_TIMEOUT
+              value: "30"
+            - name: BANDIT_WINDOW_SIZE
+              value: "5"
+            - name: STATIC_MODEL_PATH
+              value: "/app/model/gateway_model.pkl"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 10

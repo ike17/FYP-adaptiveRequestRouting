@@ -1,0 +1,7 @@
+{
+  "config": "static",
+  "total_queries": 100,
+  "successful_queries": 0,
+  "success_rate": 0,
+  "error": "All queries failed"
+}

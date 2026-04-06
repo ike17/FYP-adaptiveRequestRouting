@@ -1,0 +1,16 @@
+{
+  "config": "bandit",
+  "total_queries": 100,
+  "successful_queries": 73,
+  "success_rate": 0.73,
+  "mean_latency_ms": 4834.12,
+  "min_latency_ms": 462.09,
+  "max_latency_ms": 26799.4,
+  "p50_latency_ms": 1836.91,
+  "p95_latency_ms": 21429.7,
+  "p99_latency_ms": 23662.244800000008,
+  "std_latency_ms": 6953.71425220264,
+  "timestamp": "2026-03-30T01:41:27.678957",
+  "mean_tokens_per_sec": 116.05,
+  "median_tokens_per_sec": 149.84
+}

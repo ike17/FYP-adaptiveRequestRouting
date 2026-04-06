@@ -1,0 +1,56 @@
+# k8s/04-shock-job.yaml
+# Simulates hardware shock on the GPU node (laptop).
+# Applied by run_experiments.py at dispatch index 50 via subprocess kubectl apply.
+# ttlSecondsAfterFinished: 60 ensures the cluster self-cleans after the Job completes.
+#
+# Two-stressor design:
+#   cpu-stress       — saturates the CPU cores on the GPU node, slowing Ollama's
+#                      tokenization pre/post-processing and model weight loading.
+#   gpu-queue-flood  — continuously fires long-prompt generation requests directly
+#                      at ollama-gpu-service, keeping the GPU occupied with
+#                      background tasks and filling Ollama's internal request queue.
+#                      This is the primary GPU stressor: experiment traffic queues
+#                      behind the flood requests, dramatically raising p95/p99 latency.
+#
+# Both containers run in the same pod on the GPU node (shared nodeSelector).
+# Combined effect: the bandit/adaptive algorithm should detect the latency spike and
+# pivot routing towards the CPU node (arm 1) for the remaining ~50 experiment queries.
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cpu-shock
+  labels:
+    app: cpu-shock
+spec:
+  ttlSecondsAfterFinished: 60
+  template:
+    spec:
+      nodeSelector:
+        node_type: gpu_accelerated
+      restartPolicy: Never
+      containers:
+        - name: cpu-stress
+          image: polinux/stress
+          imagePullPolicy: IfNotPresent
+          command: ["stress"]
+          args: ["--cpu", "4", "--timeout", "90s"]
+
+        - name: gpu-queue-flood
+          image: curlimages/curl:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              end=$(($(date +%s) + 90))
+              while [ $(date +%s) -lt $end ]; do
+                # Cap concurrency at 8 to keep GPU Ollama saturated without
+                # overwhelming kube-proxy and causing a cluster-wide network blackout
+                # that also takes down the CPU arm (which we want to survive the shock).
+                while [ "$(jobs -r | wc -l)" -ge 8 ]; do sleep 1; done
+                curl -sf -X POST http://ollama-gpu-service:11434/api/generate \
+                  -H 'Content-Type: application/json' \
+                  -d '{"model":"gemma:2b","prompt":"Write a long detailed essay about distributed systems, cloud computing, and Kubernetes architecture including scheduling algorithms, resource management, networking, storage, and security considerations","stream":false}' &
+              done
+              wait

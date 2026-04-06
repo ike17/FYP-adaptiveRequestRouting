@@ -1,0 +1,5 @@
+mode,total,failures,failure_rate_pct,err_HTTP Error
+baseline,100,49,49.0,49
+static,100,60,60.0,60
+bandit,100,20,20.0,20
+adaptive,100,50,50.0,50

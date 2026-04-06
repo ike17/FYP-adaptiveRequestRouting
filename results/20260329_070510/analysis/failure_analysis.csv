@@ -1,0 +1,5 @@
+mode,total,failures,failure_rate_pct
+baseline,20,0,0.0
+static,20,0,0.0
+bandit,20,0,0.0
+adaptive,20,0,0.0

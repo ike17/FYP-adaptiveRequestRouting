@@ -1,0 +1,113 @@
+# k8s/01-ollama-gpu.yaml
+# Ollama deployment pinned to the GPU node (laptop) via nodeSelector.
+# This pod runs gemma:2b with NVIDIA GPU acceleration.
+# The smart-gateway forwards generation requests here when it selects arm 0 (gpu).
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-gpu-service
+  labels:
+    app: ollama-gpu
+spec:
+  selector:
+    app: ollama-gpu
+  ports:
+    - port: 11434
+      targetPort: 11434
+      name: ollama
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-gpu
+  labels:
+    app: ollama-gpu
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ollama-gpu
+  template:
+    metadata:
+      labels:
+        app: ollama-gpu
+    spec:
+      runtimeClassName: nvidia
+      nodeSelector:
+        node_type: gpu_accelerated
+      volumes:
+        - name: nvidia-ctl
+          hostPath:
+            path: /dev/nvidiactl
+        - name: nvidia-dev0
+          hostPath:
+            path: /dev/nvidia0
+        - name: nvidia-uvm
+          hostPath:
+            path: /dev/nvidia-uvm
+        - name: nvidia-uvm-tools
+          hostPath:
+            path: /dev/nvidia-uvm-tools
+      containers:
+        - name: ollama
+          image: generation-service:v1
+          imagePullPolicy: Never
+          securityContext:
+            privileged: true
+          env:
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: OLLAMA_NUM_PARALLEL
+              value: "2"
+            - name: OLLAMA_MAX_QUEUE
+              value: "50"
+          volumeMounts:
+            - name: nvidia-ctl
+              mountPath: /dev/nvidiactl
+            - name: nvidia-dev0
+              mountPath: /dev/nvidia0
+            - name: nvidia-uvm
+              mountPath: /dev/nvidia-uvm
+            - name: nvidia-uvm-tools
+              mountPath: /dev/nvidia-uvm-tools
+          ports:
+            - containerPort: 11434
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+              nvidia.com/gpu: "1"
+            limits:
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    echo "Waiting for Ollama to start..."
+                    sleep 10
+                    echo "Pulling gemma:2b model..."
+                    ollama pull gemma:2b
+                    echo "Model ready!"

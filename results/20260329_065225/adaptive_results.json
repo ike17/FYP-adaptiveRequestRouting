@@ -1,0 +1,196 @@
+[
+  {
+    "success": false,
+    "prompt": "What is Kubernetes and how does it work?",
+    "error": "HTTP 500",
+    "measured_time_ms": 8711.652755737305,
+    "timestamp": "2026-03-29T05:56:29.748372",
+    "query_number": 1,
+    "config": "adaptive"
+  },
+  {
+    "success": true,
+    "query_id": 2,
+    "prompt": "Explain the difference between pods and containers in Kubernetes.",
+    "response_length": 115,
+    "retrieval_time_ms": 901.45,
+    "generation_time_ms": 2682.88,
+    "total_time_ms": 3584.74,
+    "routed_to": "cpu",
+    "tokens_generated": 23,
+    "tokens_per_sec": 19.36,
+    "measured_time_ms": 3698.915958404541,
+    "timestamp": "2026-03-29T05:56:25.171491",
+    "query_number": 2,
+    "config": "adaptive"
+  },
+  {
+    "success": true,
+    "query_id": 3,
+    "prompt": "How does machine learning improve scheduling decisions in heterogeneous clusters?",
+    "response_length": 184,
+    "retrieval_time_ms": 900.93,
+    "generation_time_ms": 2612.5,
+    "total_time_ms": 3514.82,
+    "routed_to": "cpu",
+    "tokens_generated": 29,
+    "tokens_per_sec": 20.93,
+    "measured_time_ms": 3543.2190895080566,
+    "timestamp": "2026-03-29T05:56:28.714863",
+    "query_number": 3,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "What is Retrieval-Augmented Generation and why is it useful?",
+    "error": "HTTP 500",
+    "measured_time_ms": 1038.442850112915,
+    "timestamp": "2026-03-29T05:56:29.753346",
+    "query_number": 4,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "Describe the Thompson Sampling algorithm and its applications to multi-armed bandits.",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.268625259399414,
+    "timestamp": "2026-03-29T05:56:32.764892",
+    "query_number": 5,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "What are the benefits of GPU acceleration for large language model inference?",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.4619827270507812,
+    "timestamp": "2026-03-29T05:56:32.764812",
+    "query_number": 6,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "How do contextual bandits differ from standard multi-armed bandits?",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.5249252319335938,
+    "timestamp": "2026-03-29T05:56:36.772312",
+    "query_number": 7,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "Explain piecewise stationary environments and how they challenge online learning algorithms.",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.111745834350586,
+    "timestamp": "2026-03-29T05:56:36.772263",
+    "query_number": 8,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Random Forest classifier and how does it make predictions?",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.2807846069335938,
+    "timestamp": "2026-03-29T05:56:40.780065",
+    "query_number": 9,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "How does vector similarity search work and what distance metrics are commonly used?",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.0869503021240234,
+    "timestamp": "2026-03-29T05:56:40.780130",
+    "query_number": 10,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "What are the challenges of workload scheduling in heterogeneous compute clusters?",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.6045570373535156,
+    "timestamp": "2026-03-29T05:56:44.788369",
+    "query_number": 11,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "Explain the exploration-exploitation tradeoff in reinforcement learning.",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 0.9696483612060547,
+    "timestamp": "2026-03-29T05:56:44.788049",
+    "query_number": 12,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "What is semantic search and how does it differ from keyword-based search?",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.3108253479003906,
+    "timestamp": "2026-03-29T05:56:48.796122",
+    "query_number": 13,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "How do transformer models use attention mechanisms to process sequences?",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.0344982147216797,
+    "timestamp": "2026-03-29T05:56:48.796168",
+    "query_number": 14,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "Describe online learning algorithms and how they adapt to non-stationary distributions.",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.89971923828125,
+    "timestamp": "2026-03-29T05:56:52.804755",
+    "query_number": 15,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "What is a Beta distribution and how is it used as a conjugate prior in Bayesian inference?",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.2993812561035156,
+    "timestamp": "2026-03-29T05:56:52.804818",
+    "query_number": 16,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "Explain how Kubernetes node affinity and tolerations control pod placement.",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.7004013061523438,
+    "timestamp": "2026-03-29T05:56:56.812977",
+    "query_number": 17,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "What metrics are commonly used to evaluate LLM inference performance in production?",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.3053417205810547,
+    "timestamp": "2026-03-29T05:56:56.812927",
+    "query_number": 18,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "How does a vector database store and retrieve high-dimensional embeddings efficiently?",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.3370513916015625,
+    "timestamp": "2026-03-29T05:57:00.820411",
+    "query_number": 19,
+    "config": "adaptive"
+  },
+  {
+    "success": false,
+    "prompt": "What is the difference between throughput and latency in distributed systems?",
+    "error": "Connection failed after retries",
+    "measured_time_ms": 1.5976428985595703,
+    "timestamp": "2026-03-29T05:57:00.820368",
+    "query_number": 20,
+    "config": "adaptive"
+  }
+]

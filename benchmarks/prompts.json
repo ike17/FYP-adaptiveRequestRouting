@@ -1,0 +1,22 @@
+[
+  "What is Kubernetes and how does it work?",
+  "Explain the difference between pods and containers in Kubernetes.",
+  "How does machine learning improve scheduling decisions in heterogeneous clusters?",
+  "What is Retrieval-Augmented Generation and why is it useful?",
+  "Describe the Thompson Sampling algorithm and its applications to multi-armed bandits.",
+  "What are the benefits of GPU acceleration for large language model inference?",
+  "How do contextual bandits differ from standard multi-armed bandits?",
+  "Explain piecewise stationary environments and how they challenge online learning algorithms.",
+  "What is a Random Forest classifier and how does it make predictions?",
+  "How does vector similarity search work and what distance metrics are commonly used?",
+  "What are the challenges of workload scheduling in heterogeneous compute clusters?",
+  "Explain the exploration-exploitation tradeoff in reinforcement learning.",
+  "What is semantic search and how does it differ from keyword-based search?",
+  "How do transformer models use attention mechanisms to process sequences?",
+  "Describe online learning algorithms and how they adapt to non-stationary distributions.",
+  "What is a Beta distribution and how is it used as a conjugate prior in Bayesian inference?",
+  "Explain how Kubernetes node affinity and tolerations control pod placement.",
+  "What metrics are commonly used to evaluate LLM inference performance in production?",
+  "How does a vector database store and retrieve high-dimensional embeddings efficiently?",
+  "What is the difference between throughput and latency in distributed systems?"
+]

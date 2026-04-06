@@ -1,0 +1,445 @@
+[10:34:53] Results directory: /home/ike/vsc/fyp/results/20260329_103453
+[10:34:53] Deploying manifests...
+service/ollama-gpu-service unchanged
+deployment.apps/ollama-gpu unchanged
+service/ollama-cpu-service unchanged
+deployment.apps/ollama-cpu configured
+service/smart-gateway-service unchanged
+deployment.apps/smart-gateway unchanged
+[10:34:53] === EXPERIMENT: baseline ===
+[10:34:53] switching gateway to mode: baseline — restarting all pods for clean state
+deployment.apps/smart-gateway env updated
+deployment.apps/ollama-gpu restarted
+deployment.apps/ollama-cpu restarted
+deployment.apps/smart-gateway restarted
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 of 1 updated replicas are available...
+deployment "ollama-gpu" successfully rolled out
+deployment "ollama-cpu" successfully rolled out
+Waiting for deployment "smart-gateway" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "smart-gateway" rollout to finish: 1 old replicas are pending termination...
+deployment "smart-gateway" successfully rolled out
+[10:35:50] waiting for pods matching label='app=ollama-gpu'...
+[10:35:50]   pods ready (1 running)
+[10:35:50] waiting for pods matching label='app=ollama-cpu'...
+[10:35:51]   pods ready (1 running)
+[10:35:51] waiting for pods matching label='app=smart-gateway'...
+[10:35:51]   waiting... (0s/300s, running=1, not_ready=1)
+[10:36:06]   pods ready (1 running)
+[10:36:06] waiting for gemma:2b to load on app=ollama-gpu (up to 300s)...
+[10:36:07]   model ready (ollama-gpu-66cd9ddb9d-fps6f, 0s elapsed)
+[10:36:07] waiting for gemma:2b to load on app=ollama-cpu (up to 300s)...
+[10:36:07]   model ready (ollama-cpu-86f8dcccfd-czstv, 0s elapsed)
+  [Started] kubectl port-forward svc/smart-gateway-service 8080:8000
+Gateway URL: http://localhost:8080
+Waiting for gateway at http://localhost:8080...
+[OK] Gateway is ready!
+[warmup] sending 3 warmup queries (results discarded)...
+  [warmup] q1: HTTP 504
+  [warmup] q2: ok
+  [warmup] q3: ok
+[warmup] done
+[OK] Metrics cleared
+
+============================================================
+EXPERIMENT: baseline
+Queries: 100 | Rate: 0.9 req/s | Concurrency: 2
+Shock: kubectl apply at dispatch index 50
+============================================================
+
+Dispatching queries:   0%|          | 0/100 [00:00<?, ?it/s]/home/ike/vsc/fyp/benchmarks/run_experiments.py:239: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:   2%|▏         | 2/100 [00:00<00:39,  2.46it/s]Dispatching queries:   3%|▎         | 3/100 [00:01<00:40,  2.42it/s]Dispatching queries:   4%|▍         | 4/100 [00:02<01:15,  1.28it/s]Dispatching queries:   5%|▌         | 5/100 [00:04<01:33,  1.02it/s]Dispatching queries:   7%|▋         | 7/100 [00:04<00:50,  1.85it/s]Dispatching queries:   8%|▊         | 8/100 [00:04<00:50,  1.81it/s]Dispatching queries:   9%|▉         | 9/100 [00:05<00:59,  1.52it/s]Dispatching queries:  10%|█         | 10/100 [00:08<01:50,  1.22s/it]Dispatching queries:  12%|█▏        | 12/100 [00:10<01:46,  1.21s/it]Dispatching queries:  13%|█▎        | 13/100 [00:11<01:30,  1.04s/it]Dispatching queries:  14%|█▍        | 14/100 [00:14<02:08,  1.50s/it]Dispatching queries:  15%|█▌        | 15/100 [00:14<01:44,  1.23s/it]Dispatching queries:  16%|█▌        | 16/100 [00:17<02:29,  1.78s/it]Dispatching queries:  18%|█▊        | 18/100 [00:18<01:33,  1.15s/it]Dispatching queries:  19%|█▉        | 19/100 [00:18<01:19,  1.02it/s]Dispatching queries:  20%|██        | 20/100 [00:22<02:01,  1.52s/it]Dispatching queries:  21%|██        | 21/100 [00:22<01:31,  1.16s/it]Dispatching queries:  22%|██▏       | 22/100 [00:24<01:49,  1.41s/it]Dispatching queries:  23%|██▎       | 23/100 [00:28<02:56,  2.29s/it]Dispatching queries:  24%|██▍       | 24/100 [00:33<03:52,  3.06s/it]Dispatching queries:  25%|██▌       | 25/100 [00:33<02:47,  2.23s/it]Dispatching queries:  26%|██▌       | 26/100 [00:34<02:13,  1.81s/it]Dispatching queries:  27%|██▋       | 27/100 [00:35<01:44,  1.43s/it]Dispatching queries:  28%|██▊       | 28/100 [00:36<01:30,  1.25s/it]Dispatching queries:  29%|██▉       | 29/100 [00:36<01:05,  1.09it/s]Dispatching queries:  30%|███       | 30/100 [00:38<01:23,  1.19s/it]Dispatching queries:  31%|███       | 31/100 [00:38<01:09,  1.01s/it]Dispatching queries:  32%|███▏      | 32/100 [00:38<00:53,  1.27it/s]Dispatching queries:  33%|███▎      | 33/100 [00:39<00:39,  1.69it/s]Dispatching queries:  34%|███▍      | 34/100 [00:41<01:23,  1.26s/it]Dispatching queries:  35%|███▌      | 35/100 [00:43<01:18,  1.20s/it]Dispatching queries:  36%|███▌      | 36/100 [00:43<01:05,  1.02s/it]Dispatching queries:  37%|███▋      | 37/100 [00:43<00:46,  1.34it/s]Dispatching queries:  38%|███▊      | 38/100 [00:45<01:07,  1.09s/it]Dispatching queries:  40%|████      | 40/100 [00:46<00:43,  1.37it/s]Dispatching queries:  41%|████      | 41/100 [00:47<00:52,  1.13it/s]Dispatching queries:  42%|████▏     | 42/100 [00:49<01:01,  1.05s/it]Dispatching queries:  43%|████▎     | 43/100 [00:51<01:21,  1.43s/it]Dispatching queries:  44%|████▍     | 44/100 [00:52<01:10,  1.26s/it]Dispatching queries:  45%|████▌     | 45/100 [00:52<00:58,  1.06s/it]Dispatching queries:  46%|████▌     | 46/100 [00:57<01:46,  1.97s/it]Dispatching queries:  47%|████▋     | 47/100 [00:59<01:44,  1.98s/it]Dispatching queries:  49%|████▉     | 49/100 [01:00<01:07,  1.32s/it]Dispatching queries:  50%|█████     | 50/100 [01:03<01:33,  1.88s/it]Dispatching queries:  51%|█████     | 51/100 [01:06<01:36,  1.98s/it]job.batch/cpu-shock created
+/home/ike/vsc/fyp/benchmarks/run_experiments.py:239: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:  52%|█████▏    | 52/100 [01:08<01:38,  2.06s/it]Dispatching queries:  53%|█████▎    | 53/100 [01:08<01:13,  1.57s/it]Dispatching queries:  55%|█████▌    | 55/100 [01:14<01:42,  2.27s/it]Dispatching queries:  56%|█████▌    | 56/100 [01:15<01:20,  1.83s/it]Dispatching queries:  58%|█████▊    | 58/100 [01:16<00:57,  1.37s/it]Dispatching queries:  59%|█████▉    | 59/100 [01:20<01:15,  1.83s/it]Dispatching queries:  60%|██████    | 60/100 [01:20<00:57,  1.44s/it]Dispatching queries:  62%|██████▏   | 62/100 [01:20<00:34,  1.10it/s]Dispatching queries:  63%|██████▎   | 63/100 [01:23<00:51,  1.38s/it]Dispatching queries:  64%|██████▍   | 64/100 [01:44<03:43,  6.20s/it]/home/ike/vsc/fyp/benchmarks/run_experiments.py:247: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:  65%|██████▌   | 65/100 [01:45<02:51,  4.90s/it]Dispatching queries:  66%|██████▌   | 66/100 [01:46<02:08,  3.79s/it]Dispatching queries:  67%|██████▋   | 67/100 [01:47<01:34,  2.88s/it]Dispatching queries:  68%|██████▊   | 68/100 [01:48<01:19,  2.48s/it]Dispatching queries:  69%|██████▉   | 69/100 [01:49<00:57,  1.87s/it]Dispatching queries:  70%|███████   | 70/100 [01:50<00:51,  1.73s/it]Dispatching queries:  71%|███████   | 71/100 [01:53<01:02,  2.14s/it]Dispatching queries:  72%|███████▏  | 72/100 [01:54<00:50,  1.79s/it]Dispatching queries:  73%|███████▎  | 73/100 [01:55<00:40,  1.50s/it]Dispatching queries:  74%|███████▍  | 74/100 [01:55<00:31,  1.22s/it]Dispatching queries:  75%|███████▌  | 75/100 [01:57<00:34,  1.38s/it]Dispatching queries:  76%|███████▌  | 76/100 [01:57<00:25,  1.05s/it]Dispatching queries:  77%|███████▋  | 77/100 [02:00<00:33,  1.47s/it]Dispatching queries:  78%|███████▊  | 78/100 [02:01<00:29,  1.33s/it]Dispatching queries:  79%|███████▉  | 79/100 [02:02<00:23,  1.12s/it]Dispatching queries:  80%|████████  | 80/100 [02:02<00:21,  1.06s/it]Dispatching queries:  81%|████████  | 81/100 [02:03<00:16,  1.15it/s]Dispatching queries:  82%|████████▏ | 82/100 [02:03<00:11,  1.51it/s]Dispatching queries:  83%|████████▎ | 83/100 [02:03<00:08,  1.93it/s]Dispatching queries:  84%|████████▍ | 84/100 [02:04<00:09,  1.66it/s]Dispatching queries:  86%|████████▌ | 86/100 [02:04<00:04,  2.87it/s]Dispatching queries:  87%|████████▋ | 87/100 [02:07<00:12,  1.07it/s]Dispatching queries:  88%|████████▊ | 88/100 [02:07<00:09,  1.30it/s]Dispatching queries:  89%|████████▉ | 89/100 [02:09<00:12,  1.12s/it]Dispatching queries:  90%|█████████ | 90/100 [02:09<00:08,  1.19it/s]Dispatching queries:  91%|█████████ | 91/100 [02:12<00:12,  1.37s/it]Dispatching queries:  92%|█████████▏| 92/100 [02:13<00:09,  1.22s/it]Dispatching queries:  93%|█████████▎| 93/100 [02:13<00:06,  1.02it/s]Dispatching queries:  94%|█████████▍| 94/100 [02:14<00:04,  1.33it/s]Dispatching queries:  95%|█████████▌| 95/100 [02:14<00:02,  1.75it/s]Dispatching queries:  96%|█████████▌| 96/100 [02:14<00:02,  1.73it/s]Dispatching queries:  97%|█████████▋| 97/100 [02:15<00:02,  1.32it/s]Dispatching queries:  98%|█████████▊| 98/100 [02:21<00:04,  2.17s/it]Dispatching queries:  99%|█████████▉| 99/100 [02:25<00:02,  2.82s/it]Dispatching queries: 100%|██████████| 100/100 [02:26<00:00,  2.21s/it]Dispatching queries: 100%|██████████| 100/100 [02:26<00:00,  1.47s/it]
+/home/ike/vsc/fyp/benchmarks/run_experiments.py:372: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+
+[!] INJECTING CLUSTER SHOCK (query index 50)...
+All 100 queries dispatched — waiting for in-flight requests...
+[OK] Detailed results: /home/ike/vsc/fyp/results/20260329_103453/baseline_results.json
+[OK] Summary: /home/ike/vsc/fyp/results/20260329_103453/baseline_summary.json
+
+============================================================
+EXPERIMENT SUMMARY
+============================================================
+Config:       baseline
+Success rate: 51.0%
+Mean latency: 1201.55ms
+P50 latency:  899.17ms
+P95 latency:  2269.25ms
+P99 latency:  2421.89ms
+Mean tok/s:   167.28
+============================================================
+
+Experiment complete!
+[10:39:25]   experiment baseline DONE
+[10:39:25] === EXPERIMENT: static ===
+[10:39:25] switching gateway to mode: static — restarting all pods for clean state
+deployment.apps/smart-gateway env updated
+deployment.apps/ollama-gpu restarted
+deployment.apps/ollama-cpu restarted
+deployment.apps/smart-gateway restarted
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 of 1 updated replicas are available...
+deployment "ollama-gpu" successfully rolled out
+deployment "ollama-cpu" successfully rolled out
+deployment "smart-gateway" successfully rolled out
+[10:40:19] waiting for pods matching label='app=ollama-gpu'...
+[10:40:19]   pods ready (1 running)
+[10:40:19] waiting for pods matching label='app=ollama-cpu'...
+[10:40:19]   pods ready (1 running)
+[10:40:19] waiting for pods matching label='app=smart-gateway'...
+[10:40:20]   pods ready (1 running)
+[10:40:20] waiting for gemma:2b to load on app=ollama-gpu (up to 300s)...
+[10:40:20]   model ready (ollama-gpu-56c899557d-7twq9, 0s elapsed)
+[10:40:20] waiting for gemma:2b to load on app=ollama-cpu (up to 300s)...
+[10:40:20]   model ready (ollama-cpu-6874fc674-mqpxp, 0s elapsed)
+  [Started] kubectl port-forward svc/smart-gateway-service 8080:8000
+Gateway URL: http://localhost:8080
+Waiting for gateway at http://localhost:8080...
+[OK] Gateway is ready!
+[warmup] sending 3 warmup queries (results discarded)...
+  [warmup] q1: HTTP 504
+  [warmup] q2: ok
+  [warmup] q3: ok
+[warmup] done
+[OK] Metrics cleared
+
+============================================================
+EXPERIMENT: static
+Queries: 100 | Rate: 0.9 req/s | Concurrency: 2
+Shock: kubectl apply at dispatch index 50
+============================================================
+
+Dispatching queries:   0%|          | 0/100 [00:00<?, ?it/s]/home/ike/vsc/fyp/benchmarks/run_experiments.py:239: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:   3%|▎         | 3/100 [00:01<00:58,  1.67it/s]Dispatching queries:   4%|▍         | 4/100 [00:03<01:44,  1.08s/it]Dispatching queries:   5%|▌         | 5/100 [00:04<01:36,  1.02s/it]Dispatching queries:   6%|▌         | 6/100 [00:05<01:29,  1.05it/s]Dispatching queries:   7%|▋         | 7/100 [00:06<01:17,  1.20it/s]Dispatching queries:   8%|▊         | 8/100 [00:08<01:54,  1.25s/it]Dispatching queries:   9%|▉         | 9/100 [00:09<01:53,  1.25s/it]Dispatching queries:  10%|█         | 10/100 [00:12<02:25,  1.62s/it]Dispatching queries:  11%|█         | 11/100 [00:15<03:10,  2.14s/it]Dispatching queries:  12%|█▏        | 12/100 [00:16<02:29,  1.70s/it]Dispatching queries:  13%|█▎        | 13/100 [00:17<02:31,  1.74s/it]Dispatching queries:  14%|█▍        | 14/100 [00:18<02:08,  1.49s/it]Dispatching queries:  15%|█▌        | 15/100 [00:19<01:48,  1.27s/it]Dispatching queries:  16%|█▌        | 16/100 [00:20<01:30,  1.08s/it]Dispatching queries:  17%|█▋        | 17/100 [00:26<03:47,  2.74s/it]Dispatching queries:  18%|█▊        | 18/100 [00:27<02:54,  2.13s/it]Dispatching queries:  19%|█▉        | 19/100 [00:28<02:14,  1.67s/it]Dispatching queries:  20%|██        | 20/100 [00:30<02:34,  1.93s/it]Dispatching queries:  21%|██        | 21/100 [00:30<01:52,  1.43s/it]Dispatching queries:  22%|██▏       | 22/100 [00:31<01:37,  1.25s/it]Dispatching queries:  23%|██▎       | 23/100 [00:32<01:15,  1.02it/s]Dispatching queries:  24%|██▍       | 24/100 [00:34<01:39,  1.30s/it]Dispatching queries:  25%|██▌       | 25/100 [00:35<01:33,  1.25s/it]Dispatching queries:  26%|██▌       | 26/100 [00:36<01:34,  1.28s/it]Dispatching queries:  27%|██▋       | 27/100 [00:37<01:20,  1.10s/it]Dispatching queries:  28%|██▊       | 28/100 [00:37<01:06,  1.08it/s]Dispatching queries:  30%|███       | 30/100 [00:39<01:07,  1.03it/s]Dispatching queries:  31%|███       | 31/100 [00:43<01:58,  1.72s/it]Dispatching queries:  32%|███▏      | 32/100 [00:45<01:48,  1.60s/it]Dispatching queries:  33%|███▎      | 33/100 [00:45<01:27,  1.30s/it]Dispatching queries:  34%|███▍      | 34/100 [00:45<01:05,  1.00it/s]Dispatching queries:  35%|███▌      | 35/100 [00:45<00:48,  1.34it/s]Dispatching queries:  36%|███▌      | 36/100 [00:46<00:39,  1.61it/s]Dispatching queries:  37%|███▋      | 37/100 [00:46<00:38,  1.62it/s]Dispatching queries:  38%|███▊      | 38/100 [00:47<00:39,  1.58it/s]Dispatching queries:  39%|███▉      | 39/100 [00:53<02:22,  2.33s/it]Dispatching queries:  40%|████      | 40/100 [00:54<01:42,  1.70s/it]Dispatching queries:  41%|████      | 41/100 [00:55<01:27,  1.48s/it]Dispatching queries:  42%|████▏     | 42/100 [00:56<01:20,  1.39s/it]Dispatching queries:  43%|████▎     | 43/100 [01:02<02:45,  2.90s/it]Dispatching queries:  44%|████▍     | 44/100 [01:05<02:41,  2.89s/it]Dispatching queries:  45%|████▌     | 45/100 [01:08<02:38,  2.89s/it]Dispatching queries:  46%|████▌     | 46/100 [01:10<02:23,  2.66s/it]Dispatching queries:  47%|████▋     | 47/100 [01:10<01:41,  1.91s/it]Dispatching queries:  48%|████▊     | 48/100 [01:11<01:17,  1.50s/it]Dispatching queries:  50%|█████     | 50/100 [01:11<00:42,  1.18it/s]Dispatching queries:  51%|█████     | 51/100 [01:11<00:36,  1.34it/s]job.batch/cpu-shock created
+Dispatching queries:  52%|█████▏    | 52/100 [01:12<00:29,  1.61it/s]Dispatching queries:  53%|█████▎    | 53/100 [01:12<00:25,  1.82it/s]Dispatching queries:  54%|█████▍    | 54/100 [01:12<00:22,  2.06it/s]/home/ike/vsc/fyp/benchmarks/run_experiments.py:239: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:  55%|█████▌    | 55/100 [01:15<00:48,  1.07s/it]Dispatching queries:  57%|█████▋    | 57/100 [01:15<00:29,  1.48it/s]Dispatching queries:  58%|█████▊    | 58/100 [01:16<00:27,  1.52it/s]Dispatching queries:  59%|█████▉    | 59/100 [01:20<01:08,  1.67s/it]Dispatching queries:  60%|██████    | 60/100 [01:25<01:37,  2.43s/it]Dispatching queries:  61%|██████    | 61/100 [01:26<01:17,  1.99s/it]Dispatching queries:  62%|██████▏   | 62/100 [01:29<01:24,  2.22s/it]Dispatching queries:  63%|██████▎   | 63/100 [01:55<05:39,  9.18s/it]/home/ike/vsc/fyp/benchmarks/run_experiments.py:247: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:  64%|██████▍   | 64/100 [01:57<04:11,  6.99s/it]Dispatching queries:  66%|██████▌   | 66/100 [01:57<02:14,  3.96s/it]Dispatching queries:  67%|██████▋   | 67/100 [01:59<01:55,  3.50s/it]Dispatching queries:  68%|██████▊   | 68/100 [02:00<01:28,  2.77s/it]Dispatching queries:  69%|██████▉   | 69/100 [02:02<01:16,  2.46s/it]Dispatching queries:  70%|███████   | 70/100 [02:05<01:24,  2.81s/it]Dispatching queries:  71%|███████   | 71/100 [02:06<00:59,  2.06s/it]Dispatching queries:  72%|███████▏  | 72/100 [02:08<01:00,  2.16s/it]Dispatching queries:  73%|███████▎  | 73/100 [02:11<01:01,  2.28s/it]Dispatching queries:  74%|███████▍  | 74/100 [02:11<00:45,  1.75s/it]Dispatching queries:  75%|███████▌  | 75/100 [02:12<00:36,  1.48s/it]Dispatching queries:  76%|███████▌  | 76/100 [02:13<00:32,  1.34s/it]Dispatching queries:  77%|███████▋  | 77/100 [02:16<00:40,  1.77s/it]Dispatching queries:  78%|███████▊  | 78/100 [02:17<00:35,  1.61s/it]Dispatching queries:  79%|███████▉  | 79/100 [02:17<00:27,  1.31s/it]Dispatching queries:  80%|████████  | 80/100 [02:18<00:21,  1.08s/it]Dispatching queries:  81%|████████  | 81/100 [02:18<00:17,  1.11it/s]Dispatching queries:  82%|████████▏ | 82/100 [02:19<00:15,  1.18it/s]Dispatching queries:  83%|████████▎ | 83/100 [02:20<00:13,  1.25it/s]Dispatching queries:  84%|████████▍ | 84/100 [02:21<00:12,  1.33it/s]Dispatching queries:  85%|████████▌ | 85/100 [02:22<00:16,  1.09s/it]Dispatching queries:  86%|████████▌ | 86/100 [02:23<00:12,  1.13it/s]Dispatching queries:  87%|████████▋ | 87/100 [02:24<00:13,  1.02s/it]Dispatching queries:  88%|████████▊ | 88/100 [02:24<00:09,  1.28it/s]Dispatching queries:  89%|████████▉ | 89/100 [02:26<00:10,  1.00it/s]Dispatching queries:  90%|█████████ | 90/100 [02:27<00:09,  1.10it/s]Dispatching queries:  91%|█████████ | 91/100 [02:28<00:09,  1.05s/it]Dispatching queries:  92%|█████████▏| 92/100 [02:28<00:06,  1.29it/s]Dispatching queries:  93%|█████████▎| 93/100 [02:29<00:06,  1.05it/s]Dispatching queries:  94%|█████████▍| 94/100 [02:31<00:07,  1.17s/it]Dispatching queries:  95%|█████████▌| 95/100 [02:31<00:04,  1.11it/s]Dispatching queries:  96%|█████████▌| 96/100 [02:32<00:03,  1.21it/s]Dispatching queries:  97%|█████████▋| 97/100 [02:33<00:02,  1.04it/s]Dispatching queries:  99%|█████████▉| 99/100 [02:33<00:00,  1.83it/s]Dispatching queries: 100%|██████████| 100/100 [02:34<00:00,  1.83it/s]Dispatching queries: 100%|██████████| 100/100 [02:34<00:00,  1.55s/it]
+/home/ike/vsc/fyp/benchmarks/run_experiments.py:372: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+
+[!] INJECTING CLUSTER SHOCK (query index 50)...
+All 100 queries dispatched — waiting for in-flight requests...
+[OK] Detailed results: /home/ike/vsc/fyp/results/20260329_103453/static_results.json
+[OK] Summary: /home/ike/vsc/fyp/results/20260329_103453/static_summary.json
+
+============================================================
+EXPERIMENT SUMMARY
+============================================================
+Config:       static
+Success rate: 52.0%
+Mean latency: 1905.35ms
+P50 latency:  1346.36ms
+P95 latency:  2972.34ms
+P99 latency:  13697.93ms
+Mean tok/s:   153.55
+============================================================
+
+Experiment complete!
+[10:43:55]   experiment static DONE
+[10:43:55] === EXPERIMENT: bandit ===
+[10:43:55] switching gateway to mode: bandit — restarting all pods for clean state
+deployment.apps/smart-gateway env updated
+deployment.apps/ollama-gpu restarted
+deployment.apps/ollama-cpu restarted
+deployment.apps/smart-gateway restarted
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 of 1 updated replicas are available...
+deployment "ollama-gpu" successfully rolled out
+deployment "ollama-cpu" successfully rolled out
+Waiting for deployment "smart-gateway" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "smart-gateway" rollout to finish: 1 old replicas are pending termination...
+deployment "smart-gateway" successfully rolled out
+[10:44:57] waiting for pods matching label='app=ollama-gpu'...
+[10:44:58]   pods ready (1 running)
+[10:44:58] waiting for pods matching label='app=ollama-cpu'...
+[10:44:58]   pods ready (1 running)
+[10:44:58] waiting for pods matching label='app=smart-gateway'...
+[10:44:59]   pods ready (1 running)
+[10:44:59] waiting for gemma:2b to load on app=ollama-gpu (up to 300s)...
+[10:44:59]   model ready (ollama-gpu-84c746d57d-wscqv, 0s elapsed)
+[10:44:59] waiting for gemma:2b to load on app=ollama-cpu (up to 300s)...
+[10:44:59]   model ready (ollama-cpu-c44f4676b-26t45, 0s elapsed)
+  [Started] kubectl port-forward svc/smart-gateway-service 8080:8000
+Gateway URL: http://localhost:8080
+Waiting for gateway at http://localhost:8080...
+[OK] Gateway is ready!
+[warmup] sending 3 warmup queries (results discarded)...
+  [warmup] q1: HTTP 504
+  [warmup] q2: ok
+  [warmup] q3: ok
+[warmup] done
+[OK] Metrics cleared
+
+============================================================
+EXPERIMENT: bandit
+Queries: 100 | Rate: 0.9 req/s | Concurrency: 2
+Shock: kubectl apply at dispatch index 50
+============================================================
+
+Dispatching queries:   0%|          | 0/100 [00:00<?, ?it/s]Dispatching queries:   2%|▏         | 2/100 [00:00<00:12,  7.91it/s]Dispatching queries:   3%|▎         | 3/100 [00:02<01:20,  1.21it/s]Dispatching queries:   4%|▍         | 4/100 [00:02<00:56,  1.69it/s]Dispatching queries:   5%|▌         | 5/100 [00:02<00:44,  2.11it/s]Dispatching queries:   6%|▌         | 6/100 [00:02<00:33,  2.85it/s]Dispatching queries:   7%|▋         | 7/100 [00:03<00:51,  1.81it/s]Dispatching queries:   8%|▊         | 8/100 [00:05<01:34,  1.03s/it]Dispatching queries:   9%|▉         | 9/100 [00:05<01:13,  1.23it/s]Dispatching queries:  10%|█         | 10/100 [00:08<02:08,  1.43s/it]Dispatching queries:  12%|█▏        | 12/100 [00:09<01:28,  1.01s/it]Dispatching queries:  13%|█▎        | 13/100 [00:11<01:41,  1.17s/it]/home/ike/vsc/fyp/benchmarks/run_experiments.py:239: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:  14%|█▍        | 14/100 [00:13<01:54,  1.33s/it]Dispatching queries:  16%|█▌        | 16/100 [00:14<01:22,  1.02it/s]Dispatching queries:  17%|█▋        | 17/100 [00:15<01:22,  1.01it/s]Dispatching queries:  18%|█▊        | 18/100 [00:16<01:33,  1.14s/it]Dispatching queries:  19%|█▉        | 19/100 [00:17<01:10,  1.14it/s]Dispatching queries:  20%|██        | 20/100 [00:17<00:53,  1.51it/s]Dispatching queries:  21%|██        | 21/100 [00:17<00:40,  1.97it/s]Dispatching queries:  22%|██▏       | 22/100 [00:18<00:56,  1.38it/s]Dispatching queries:  23%|██▎       | 23/100 [00:19<00:49,  1.54it/s]Dispatching queries:  24%|██▍       | 24/100 [00:19<00:41,  1.85it/s]Dispatching queries:  26%|██▌       | 26/100 [00:20<00:38,  1.93it/s]Dispatching queries:  27%|██▋       | 27/100 [00:20<00:36,  2.03it/s]Dispatching queries:  28%|██▊       | 28/100 [00:21<00:37,  1.90it/s]Dispatching queries:  29%|██▉       | 29/100 [00:22<00:41,  1.71it/s]Dispatching queries:  30%|███       | 30/100 [00:23<00:56,  1.23it/s]Dispatching queries:  31%|███       | 31/100 [00:24<00:51,  1.33it/s]Dispatching queries:  32%|███▏      | 32/100 [00:24<00:46,  1.47it/s]Dispatching queries:  33%|███▎      | 33/100 [00:25<00:42,  1.56it/s]Dispatching queries:  34%|███▍      | 34/100 [00:26<00:53,  1.24it/s]Dispatching queries:  35%|███▌      | 35/100 [00:26<00:40,  1.59it/s]Dispatching queries:  36%|███▌      | 36/100 [00:26<00:33,  1.92it/s]Dispatching queries:  37%|███▋      | 37/100 [00:27<00:33,  1.86it/s]Dispatching queries:  38%|███▊      | 38/100 [00:28<00:39,  1.59it/s]Dispatching queries:  39%|███▉      | 39/100 [00:28<00:33,  1.84it/s]Dispatching queries:  40%|████      | 40/100 [00:29<00:40,  1.49it/s]Dispatching queries:  41%|████      | 41/100 [00:35<02:22,  2.41s/it]Dispatching queries:  42%|████▏     | 42/100 [00:37<02:08,  2.21s/it]Dispatching queries:  43%|████▎     | 43/100 [00:38<01:38,  1.72s/it]Dispatching queries:  44%|████▍     | 44/100 [00:39<01:23,  1.49s/it]Dispatching queries:  45%|████▌     | 45/100 [00:39<01:04,  1.17s/it]Dispatching queries:  46%|████▌     | 46/100 [00:40<01:01,  1.13s/it]Dispatching queries:  47%|████▋     | 47/100 [00:41<00:48,  1.10it/s]Dispatching queries:  48%|████▊     | 48/100 [00:41<00:42,  1.22it/s]Dispatching queries:  49%|████▉     | 49/100 [00:43<00:53,  1.06s/it]Dispatching queries:  50%|█████     | 50/100 [00:43<00:39,  1.26it/s]Dispatching queries:  51%|█████     | 51/100 [00:44<00:42,  1.15it/s]job.batch/cpu-shock created
+Dispatching queries:  52%|█████▏    | 52/100 [00:46<00:53,  1.11s/it]Dispatching queries:  53%|█████▎    | 53/100 [00:46<00:39,  1.18it/s]Dispatching queries:  54%|█████▍    | 54/100 [00:46<00:30,  1.48it/s]Dispatching queries:  55%|█████▌    | 55/100 [00:46<00:24,  1.85it/s]Dispatching queries:  56%|█████▌    | 56/100 [00:47<00:23,  1.89it/s]Dispatching queries:  57%|█████▋    | 57/100 [00:48<00:26,  1.62it/s]Dispatching queries:  58%|█████▊    | 58/100 [00:49<00:34,  1.22it/s]Dispatching queries:  59%|█████▉    | 59/100 [00:49<00:24,  1.65it/s]Dispatching queries:  60%|██████    | 60/100 [00:50<00:29,  1.35it/s]Dispatching queries:  61%|██████    | 61/100 [00:54<01:09,  1.77s/it]Dispatching queries:  62%|██████▏   | 62/100 [00:55<00:57,  1.51s/it]Dispatching queries:  63%|██████▎   | 63/100 [00:56<00:42,  1.15s/it]Dispatching queries:  64%|██████▍   | 64/100 [00:58<00:50,  1.40s/it]Dispatching queries:  65%|██████▌   | 65/100 [00:58<00:39,  1.13s/it]/home/ike/vsc/fyp/benchmarks/run_experiments.py:239: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:  66%|██████▌   | 66/100 [00:59<00:39,  1.17s/it]Dispatching queries:  67%|██████▋   | 67/100 [01:00<00:29,  1.11it/s]Dispatching queries:  68%|██████▊   | 68/100 [01:33<05:36, 10.53s/it]Dispatching queries:  69%|██████▉   | 69/100 [01:33<03:55,  7.61s/it]Dispatching queries:  70%|███████   | 70/100 [01:34<02:41,  5.40s/it]Dispatching queries:  71%|███████   | 71/100 [01:34<01:53,  3.93s/it]/home/ike/vsc/fyp/benchmarks/run_experiments.py:247: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:  72%|███████▏  | 72/100 [01:39<01:56,  4.17s/it]Dispatching queries:  73%|███████▎  | 73/100 [01:39<01:19,  2.95s/it]Dispatching queries:  74%|███████▍  | 74/100 [01:40<01:03,  2.43s/it]Dispatching queries:  75%|███████▌  | 75/100 [01:41<00:45,  1.81s/it]Dispatching queries:  76%|███████▌  | 76/100 [01:42<00:37,  1.55s/it]Dispatching queries:  77%|███████▋  | 77/100 [01:42<00:26,  1.16s/it]Dispatching queries:  78%|███████▊  | 78/100 [01:42<00:19,  1.12it/s]Dispatching queries:  79%|███████▉  | 79/100 [01:44<00:26,  1.26s/it]Dispatching queries:  80%|████████  | 80/100 [01:45<00:19,  1.02it/s]Dispatching queries:  81%|████████  | 81/100 [01:48<00:31,  1.64s/it]Dispatching queries:  82%|████████▏ | 82/100 [01:48<00:22,  1.25s/it]Dispatching queries:  83%|████████▎ | 83/100 [01:48<00:16,  1.04it/s]Dispatching queries:  85%|████████▌ | 85/100 [01:54<00:26,  1.74s/it]Dispatching queries:  86%|████████▌ | 86/100 [01:54<00:19,  1.36s/it]Dispatching queries:  87%|████████▋ | 87/100 [01:59<00:31,  2.40s/it]Dispatching queries:  88%|████████▊ | 88/100 [02:00<00:23,  1.99s/it]Dispatching queries:  89%|████████▉ | 89/100 [02:01<00:19,  1.78s/it]Dispatching queries:  90%|█████████ | 90/100 [02:03<00:17,  1.72s/it]Dispatching queries:  91%|█████████ | 91/100 [02:04<00:13,  1.50s/it]Dispatching queries:  92%|█████████▏| 92/100 [02:05<00:11,  1.39s/it]Dispatching queries:  93%|█████████▎| 93/100 [02:05<00:07,  1.07s/it]Dispatching queries:  94%|█████████▍| 94/100 [02:07<00:07,  1.21s/it]Dispatching queries:  96%|█████████▌| 96/100 [02:08<00:03,  1.16it/s]Dispatching queries:  97%|█████████▋| 97/100 [02:09<00:02,  1.05it/s]Dispatching queries:  98%|█████████▊| 98/100 [02:10<00:01,  1.16it/s]Dispatching queries:  99%|█████████▉| 99/100 [02:10<00:00,  1.42it/s]Dispatching queries: 100%|██████████| 100/100 [02:12<00:00,  1.18s/it]Dispatching queries: 100%|██████████| 100/100 [02:12<00:00,  1.33s/it]
+/home/ike/vsc/fyp/benchmarks/run_experiments.py:372: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+
+[!] INJECTING CLUSTER SHOCK (query index 50)...
+All 100 queries dispatched — waiting for in-flight requests...
+[OK] Detailed results: /home/ike/vsc/fyp/results/20260329_103453/bandit_results.json
+[OK] Summary: /home/ike/vsc/fyp/results/20260329_103453/bandit_summary.json
+
+============================================================
+EXPERIMENT SUMMARY
+============================================================
+Config:       bandit
+Success rate: 96.0%
+Mean latency: 11634.05ms
+P50 latency:  7332.16ms
+P95 latency:  23966.79ms
+P99 latency:  26738.10ms
+Mean tok/s:   15.66
+============================================================
+
+Experiment complete!
+[10:56:15]   experiment bandit DONE
+[10:56:15] === EXPERIMENT: adaptive ===
+[10:56:15] switching gateway to mode: adaptive — restarting all pods for clean state
+deployment.apps/smart-gateway env updated
+deployment.apps/ollama-gpu restarted
+deployment.apps/ollama-cpu restarted
+deployment.apps/smart-gateway restarted
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ollama-gpu" rollout to finish: 0 of 1 updated replicas are available...
+deployment "ollama-gpu" successfully rolled out
+deployment "ollama-cpu" successfully rolled out
+Waiting for deployment "smart-gateway" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "smart-gateway" rollout to finish: 1 old replicas are pending termination...
+deployment "smart-gateway" successfully rolled out
+[10:57:34] waiting for pods matching label='app=ollama-gpu'...
+[10:57:34]   pods ready (1 running)
+[10:57:34] waiting for pods matching label='app=ollama-cpu'...
+[10:57:34]   pods ready (1 running)
+[10:57:34] waiting for pods matching label='app=smart-gateway'...
+[10:57:35]   waiting... (0s/300s, running=1, not_ready=1)
+[10:57:50]   pods ready (1 running)
+[10:57:50] waiting for gemma:2b to load on app=ollama-gpu (up to 300s)...
+[10:57:50]   model ready (ollama-gpu-68f444868d-vjvr6, 0s elapsed)
+[10:57:50] waiting for gemma:2b to load on app=ollama-cpu (up to 300s)...
+[10:57:50]   model ready (ollama-cpu-6ff88b896-lllkw, 0s elapsed)
+  [Started] kubectl port-forward svc/smart-gateway-service 8080:8000
+Gateway URL: http://localhost:8080
+Waiting for gateway at http://localhost:8080...
+[OK] Gateway is ready!
+[warmup] sending 3 warmup queries (results discarded)...
+  [warmup] q1: HTTP 504
+  [warmup] q2: ok
+  [warmup] q3: ok
+[warmup] done
+[OK] Metrics cleared
+
+============================================================
+EXPERIMENT: adaptive
+Queries: 100 | Rate: 0.9 req/s | Concurrency: 2
+Shock: kubectl apply at dispatch index 50
+============================================================
+
+Dispatching queries:   0%|          | 0/100 [00:00<?, ?it/s]Dispatching queries:   2%|▏         | 2/100 [00:01<00:50,  1.95it/s]Dispatching queries:   3%|▎         | 3/100 [00:01<00:41,  2.32it/s]Dispatching queries:   4%|▍         | 4/100 [00:01<00:44,  2.15it/s]Dispatching queries:   5%|▌         | 5/100 [00:03<01:27,  1.09it/s]Dispatching queries:   6%|▌         | 6/100 [00:04<01:10,  1.32it/s]Dispatching queries:   7%|▋         | 7/100 [00:04<01:05,  1.42it/s]Dispatching queries:   8%|▊         | 8/100 [00:05<00:57,  1.61it/s]Dispatching queries:   9%|▉         | 9/100 [00:05<00:52,  1.73it/s]Dispatching queries:  10%|█         | 10/100 [00:06<00:58,  1.55it/s]/home/ike/vsc/fyp/benchmarks/run_experiments.py:239: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:  11%|█         | 11/100 [00:08<01:44,  1.18s/it]Dispatching queries:  12%|█▏        | 12/100 [00:09<01:21,  1.07it/s]Dispatching queries:  13%|█▎        | 13/100 [00:10<01:44,  1.20s/it]Dispatching queries:  15%|█▌        | 15/100 [00:12<01:16,  1.12it/s]Dispatching queries:  16%|█▌        | 16/100 [00:12<01:09,  1.21it/s]Dispatching queries:  17%|█▋        | 17/100 [00:13<01:01,  1.35it/s]Dispatching queries:  18%|█▊        | 18/100 [00:13<00:52,  1.58it/s]Dispatching queries:  19%|█▉        | 19/100 [00:14<00:48,  1.68it/s]Dispatching queries:  20%|██        | 20/100 [00:14<00:47,  1.70it/s]Dispatching queries:  21%|██        | 21/100 [00:15<00:48,  1.64it/s]Dispatching queries:  22%|██▏       | 22/100 [00:15<00:39,  1.98it/s]Dispatching queries:  23%|██▎       | 23/100 [00:17<01:10,  1.10it/s]Dispatching queries:  24%|██▍       | 24/100 [00:17<01:00,  1.26it/s]Dispatching queries:  25%|██▌       | 25/100 [00:18<01:02,  1.19it/s]Dispatching queries:  26%|██▌       | 26/100 [00:19<00:48,  1.54it/s]Dispatching queries:  27%|██▋       | 27/100 [00:19<00:38,  1.88it/s]Dispatching queries:  29%|██▉       | 29/100 [00:20<00:37,  1.91it/s]Dispatching queries:  30%|███       | 30/100 [00:20<00:32,  2.18it/s]Dispatching queries:  32%|███▏      | 32/100 [00:20<00:22,  3.02it/s]Dispatching queries:  33%|███▎      | 33/100 [00:21<00:28,  2.36it/s]Dispatching queries:  35%|███▌      | 35/100 [00:22<00:22,  2.86it/s]Dispatching queries:  36%|███▌      | 36/100 [00:24<00:58,  1.10it/s]Dispatching queries:  37%|███▋      | 37/100 [00:25<00:54,  1.15it/s]Dispatching queries:  38%|███▊      | 38/100 [00:27<01:00,  1.02it/s]Dispatching queries:  39%|███▉      | 39/100 [00:28<01:01,  1.01s/it]Dispatching queries:  41%|████      | 41/100 [00:29<00:51,  1.15it/s]Dispatching queries:  42%|████▏     | 42/100 [00:29<00:41,  1.41it/s]Dispatching queries:  43%|████▎     | 43/100 [00:32<01:03,  1.12s/it]Dispatching queries:  44%|████▍     | 44/100 [00:32<01:00,  1.07s/it]Dispatching queries:  45%|████▌     | 45/100 [00:34<01:12,  1.33s/it]Dispatching queries:  46%|████▌     | 46/100 [00:38<01:37,  1.81s/it]Dispatching queries:  48%|████▊     | 48/100 [00:38<01:01,  1.18s/it]Dispatching queries:  49%|████▉     | 49/100 [00:41<01:17,  1.51s/it]Dispatching queries:  50%|█████     | 50/100 [00:42<01:05,  1.32s/it]Dispatching queries:  51%|█████     | 51/100 [00:44<01:13,  1.50s/it]job.batch/cpu-shock created
+Dispatching queries:  52%|█████▏    | 52/100 [00:45<01:05,  1.36s/it]Dispatching queries:  53%|█████▎    | 53/100 [00:45<00:51,  1.10s/it]Dispatching queries:  54%|█████▍    | 54/100 [00:46<00:45,  1.01it/s]Dispatching queries:  55%|█████▌    | 55/100 [00:46<00:34,  1.29it/s]Dispatching queries:  56%|█████▌    | 56/100 [00:48<00:51,  1.18s/it]Dispatching queries:  57%|█████▋    | 57/100 [00:49<00:49,  1.15s/it]Dispatching queries:  58%|█████▊    | 58/100 [00:50<00:41,  1.00it/s]Dispatching queries:  59%|█████▉    | 59/100 [00:53<01:04,  1.57s/it]Dispatching queries:  60%|██████    | 60/100 [00:53<00:45,  1.13s/it]Dispatching queries:  61%|██████    | 61/100 [00:53<00:33,  1.15it/s]Dispatching queries:  62%|██████▏   | 62/100 [00:55<00:44,  1.16s/it]Dispatching queries:  64%|██████▍   | 64/100 [00:56<00:27,  1.30it/s]Dispatching queries:  65%|██████▌   | 65/100 [00:56<00:22,  1.55it/s]Dispatching queries:  66%|██████▌   | 66/100 [00:57<00:28,  1.21it/s]Dispatching queries:  67%|██████▋   | 67/100 [00:58<00:27,  1.21it/s]Dispatching queries:  68%|██████▊   | 68/100 [00:58<00:20,  1.54it/s]Dispatching queries:  69%|██████▉   | 69/100 [01:02<00:44,  1.44s/it]Dispatching queries:  70%|███████   | 70/100 [01:02<00:36,  1.22s/it]Dispatching queries:  71%|███████   | 71/100 [01:23<03:19,  6.89s/it]/home/ike/vsc/fyp/benchmarks/run_experiments.py:247: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:  72%|███████▏  | 72/100 [01:25<02:31,  5.42s/it]Dispatching queries:  73%|███████▎  | 73/100 [01:25<01:45,  3.92s/it]Dispatching queries:  74%|███████▍  | 74/100 [01:26<01:17,  2.99s/it]Dispatching queries:  75%|███████▌  | 75/100 [01:27<00:56,  2.27s/it]Dispatching queries:  77%|███████▋  | 77/100 [01:27<00:32,  1.40s/it]Dispatching queries:  78%|███████▊  | 78/100 [01:31<00:41,  1.87s/it]Dispatching queries:  79%|███████▉  | 79/100 [01:31<00:29,  1.41s/it]Dispatching queries:  80%|████████  | 80/100 [01:31<00:21,  1.09s/it]Dispatching queries:  81%|████████  | 81/100 [01:35<00:34,  1.81s/it]Dispatching queries:  83%|████████▎ | 83/100 [01:35<00:17,  1.04s/it]/home/ike/vsc/fyp/benchmarks/run_experiments.py:239: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+Dispatching queries:  85%|████████▌ | 85/100 [01:40<00:23,  1.56s/it]Dispatching queries:  86%|████████▌ | 86/100 [01:41<00:22,  1.58s/it]Dispatching queries:  87%|████████▋ | 87/100 [01:43<00:19,  1.51s/it]Dispatching queries:  88%|████████▊ | 88/100 [01:44<00:19,  1.63s/it]Dispatching queries:  89%|████████▉ | 89/100 [01:45<00:13,  1.24s/it]Dispatching queries:  90%|█████████ | 90/100 [01:46<00:12,  1.20s/it]Dispatching queries:  91%|█████████ | 91/100 [01:46<00:08,  1.04it/s]Dispatching queries:  92%|█████████▏| 92/100 [01:47<00:07,  1.10it/s]Dispatching queries:  93%|█████████▎| 93/100 [01:47<00:05,  1.30it/s]Dispatching queries:  94%|█████████▍| 94/100 [01:48<00:04,  1.48it/s]Dispatching queries:  95%|█████████▌| 95/100 [01:49<00:04,  1.13it/s]Dispatching queries:  96%|█████████▌| 96/100 [01:51<00:04,  1.08s/it]Dispatching queries:  97%|█████████▋| 97/100 [01:53<00:04,  1.39s/it]Dispatching queries:  98%|█████████▊| 98/100 [01:53<00:02,  1.03s/it]Dispatching queries:  99%|█████████▉| 99/100 [01:53<00:00,  1.17it/s]Dispatching queries: 100%|██████████| 100/100 [01:57<00:00,  1.71s/it]Dispatching queries: 100%|██████████| 100/100 [01:57<00:00,  1.18s/it]
+/home/ike/vsc/fyp/benchmarks/run_experiments.py:372: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.utcnow().isoformat(),
+
+[!] INJECTING CLUSTER SHOCK (query index 50)...
+All 100 queries dispatched — waiting for in-flight requests...
+[OK] Detailed results: /home/ike/vsc/fyp/results/20260329_103453/adaptive_results.json
+[OK] Summary: /home/ike/vsc/fyp/results/20260329_103453/adaptive_summary.json
+
+============================================================
+EXPERIMENT SUMMARY
+============================================================
+Config:       adaptive
+Success rate: 95.0%
+Mean latency: 9322.71ms
+P50 latency:  4283.69ms
+P95 latency:  23444.95ms
+P99 latency:  24268.58ms
+Mean tok/s:   61.97
+============================================================
+
+Experiment complete!
+[11:07:51]   experiment adaptive DONE
+[11:07:51] === ALL EXPERIMENTS DONE ===
+/home/ike/vsc/fyp/benchmarks/analyze_results.py:13: DeprecationWarning: 
+Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
+(to allow more performant data types, such as the Arrow string type, and better interoperability with other libraries)
+but was not found to be installed on your system.
+If this would cause problems for you,
+please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
+        
+  import pandas as pd
+/home/ike/.local/lib/python3.12/site-packages/scipy/stats/_stats_py.py:1081: RuntimeWarning: divide by zero encountered in divide
+  var *= np.divide(n, n-ddof)  # to avoid error on division by zero
+/home/ike/.local/lib/python3.12/site-packages/scipy/stats/_stats_py.py:1081: RuntimeWarning: invalid value encountered in scalar multiply
+  var *= np.divide(n, n-ddof)  # to avoid error on division by zero
+/home/ike/.local/lib/python3.12/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/home/ike/.local/lib/python3.12/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+loading results from: /home/ike/vsc/fyp/results/20260329_103453
+found: ['baseline', 'adaptive', 'static', 'bandit']
+saved: latency_comparison.png
+saved: percentile_comparison.png
+saved: latency_over_time.png
+saved: routing_distribution.png
+saved: token_throughput.png
+saved: recovery_chart.png
+
+--- recovery (first query ≤ pre-shock mean × 1.2) ---
+  baseline: query +0 after shock
+  bandit: query +3 after shock
+  adaptive: query +4 after shock
+saved: success_rate_over_time.png
+saved: pre_post_success_comparison.png
+saved: failure_analysis.csv
+
+--- failure breakdown ---
+    mode  total  failures  failure_rate_pct  err_HTTP Error
+baseline    100        49              49.0              49
+  static    100        48              48.0              48
+  bandit    100         4               4.0               4
+adaptive    100         5               5.0               5
+saved: statistical_tests.json
+
+--- statistical analysis ---
+bonferroni correction: alpha/n = 0.05/6 = 0.0083
+primary test: Mann-Whitney U (non-parametric, handles right-skewed latency)
+
+[full (q1-100)] baseline vs static
+  1201.5ms [1020-1386 95%CI]  vs  1905.4ms [1334-2803 95%CI]
+  MWU: U=986, p=0.0251, p_bonf=0.1508 * (uncorr) | r=-0.256
+  Cohen's d=-0.328 (small), improvement=-58.6%
+
+[pre-shock (q1-50)] baseline vs static
+  1215.7ms [1035-1401 95%CI]  vs  1458.1ms [1234-1738 95%CI]
+  MWU: U=985, p=0.0937, p_bonf=0.5623  | r=-0.196
+  Cohen's d=-0.301 (small), improvement=-19.9%
+
+[post-shock (q51-100)] baseline vs static
+  495.1ms [495-495 95%CI]  vs  9210.6ms [2424-21623 95%CI]
+  MWU: U=0, p=0.5000, p_bonf=1.0000  | r=-1.000
+  Cohen's d=0.000 (negligible), improvement=-1760.3%
+
+[full (q1-100)] baseline vs bandit
+  1201.5ms [1020-1386 95%CI]  vs  11634.0ms [10082-13272 95%CI]
+  MWU: U=0, p=0.0000, p_bonf=0.0000 *** (bonf) | r=-1.000
+  Cohen's d=-1.605 (very large), improvement=-868.3%
+
+[pre-shock (q1-50)] baseline vs bandit
+  1215.7ms [1035-1401 95%CI]  vs  12425.7ms [10318-14624 95%CI]
+  MWU: U=0, p=0.0000, p_bonf=0.0000 *** (bonf) | r=-1.000
+  Cohen's d=-2.154 (very large), improvement=-922.1%
+
+[post-shock (q51-100)] baseline vs bandit
+  495.1ms [495-495 95%CI]  vs  10905.7ms [8593-13284 95%CI]
+  MWU: U=0, p=0.0392, p_bonf=0.2353 * (uncorr) | r=-1.000
+  Cohen's d=0.000 (negligible), improvement=-2102.7%
+
+[full (q1-100)] baseline vs adaptive
+  1201.5ms [1020-1386 95%CI]  vs  9322.7ms [7560-11054 95%CI]
+  MWU: U=710, p=0.0000, p_bonf=0.0000 *** (bonf) | r=-0.707
+  Cohen's d=-1.153 (large), improvement=-675.9%
+
+[pre-shock (q1-50)] baseline vs adaptive
+  1215.7ms [1035-1401 95%CI]  vs  12453.6ms [10047-14955 95%CI]
+  MWU: U=0, p=0.0000, p_bonf=0.0000 *** (bonf) | r=-1.000
+  Cohen's d=-1.947 (very large), improvement=-924.4%
+
+[post-shock (q51-100)] baseline vs adaptive
+  495.1ms [495-495 95%CI]  vs  6504.9ms [4401-8831 95%CI]
+  MWU: U=1, p=0.0784, p_bonf=0.4706  | r=-0.960
+  Cohen's d=0.000 (negligible), improvement=-1213.8%
+
+[full (q1-100)] static vs bandit
+  1905.4ms [1334-2803 95%CI]  vs  11634.0ms [10082-13272 95%CI]
+  MWU: U=131, p=0.0000, p_bonf=0.0000 *** (bonf) | r=-0.948
+  Cohen's d=-1.453 (very large), improvement=-510.6%
+
+[pre-shock (q1-50)] static vs bandit
+  1458.1ms [1234-1738 95%CI]  vs  12425.7ms [10318-14624 95%CI]
+  MWU: U=19, p=0.0000, p_bonf=0.0000 *** (bonf) | r=-0.983
+  Cohen's d=-2.088 (very large), improvement=-752.2%
+
+[post-shock (q51-100)] static vs bandit
+  9210.6ms [2424-21623 95%CI]  vs  10905.7ms [8593-13284 95%CI]
+  MWU: U=43, p=0.2380, p_bonf=1.0000  | r=-0.427
+  Cohen's d=-0.198 (negligible), improvement=-18.4%
+
+[full (q1-100)] static vs adaptive
+  1905.4ms [1334-2803 95%CI]  vs  9322.7ms [7560-11054 95%CI]
+  MWU: U=1031, p=0.0000, p_bonf=0.0000 *** (bonf) | r=-0.583
+  Cohen's d=-1.027 (large), improvement=-389.3%
+
+[pre-shock (q1-50)] static vs adaptive
+  1458.1ms [1234-1738 95%CI]  vs  12453.6ms [10047-14955 95%CI]
+  MWU: U=20, p=0.0000, p_bonf=0.0000 *** (bonf) | r=-0.982
+  Cohen's d=-1.889 (very large), improvement=-754.1%
+
+[post-shock (q51-100)] static vs adaptive
+  9210.6ms [2424-21623 95%CI]  vs  6504.9ms [4401-8831 95%CI]
+  MWU: U=103, p=0.3050, p_bonf=1.0000  | r=0.373
+  Cohen's d=0.330 (small), improvement=+29.4%
+
+[full (q1-100)] bandit vs adaptive
+  11634.0ms [10082-13272 95%CI]  vs  9322.7ms [7560-11054 95%CI]
+  MWU: U=5800, p=0.0012, p_bonf=0.0071 ** (bonf) | r=0.272
+  Cohen's d=0.276 (small), improvement=+19.9%
+
+[pre-shock (q1-50)] bandit vs adaptive
+  12425.7ms [10318-14624 95%CI]  vs  12453.6ms [10047-14955 95%CI]
+  MWU: U=1109, p=0.5596, p_bonf=1.0000  | r=0.071
+  Cohen's d=-0.004 (negligible), improvement=-0.2%
+
+[post-shock (q51-100)] bandit vs adaptive
+  10905.7ms [8593-13284 95%CI]  vs  6504.9ms [4401-8831 95%CI]
+  MWU: U=1834, p=0.0001, p_bonf=0.0003 *** (bonf) | r=0.467
+  Cohen's d=0.531 (medium), improvement=+40.4%
+
+saved: comparison_table.csv
+
+--- comparison table ---
+    Mode Mean (ms)        95% CI Std (ms) P50 (ms) P95 (ms) P99 (ms) P99/P50 Eff. lat (ms) Pre-shock mean Post-shock mean vs baseline % GPU % CPU Tokens/s
+baseline    1201.5   [1020-1386]    670.2    899.2   2269.2   2421.9    2.69        4127.9         1215.7           495.1       +0.0%  100%    0%    167.3
+  static    1905.4   [1334-2803]   2946.6   1346.4   2972.3  13697.9   10.17        4275.0         1458.1          9210.6      -58.6%   92%    8%    153.6
+  bandit   11634.0 [10082-13272]   8013.9   7332.2  23966.8  26738.1    3.65       12643.9        12425.7         10905.7     -868.3%    1%   99%     15.7
+adaptive    9322.7  [7560-11054]   8701.0   4283.7  23444.9  24268.6    5.67       11193.3        12453.6          6504.9     -675.9%   31%   69%     62.0
+
+done — charts and stats in: /home/ike/vsc/fyp/results/20260329_103453/analysis
+[11:07:59] === COMPLETE ===
+[11:07:59] Results: /home/ike/vsc/fyp/results/20260329_103453
+[11:07:59] Charts:  /home/ike/vsc/fyp/results/20260329_103453/analysis/
