@@ -1,105 +1,131 @@
 # Troubleshooting
 
-Common setup and runtime issues for the FYP RAG scheduler project.
+Common issues for the L7 Smart Gateway on bare-metal k3s.
 
-## 1) k3d cluster fails to create
+## 1) Pods stuck in Pending
 
-- Verify Docker Desktop is running.
-- Delete any existing cluster and retry:
+```bash
+kubectl describe pod <pod-name>
+```
+
+Check Events section. Common causes:
+- Missing node labels. Fix: `./scripts/setup_cluster.sh` or manually:
   ```bash
-  k3d cluster delete fyp
-  ./scripts/setup_cluster.sh
+  kubectl label node <cpu-node> node_type=cpu_standard --overwrite
+  kubectl label node <gpu-node> node_type=gpu_accelerated --overwrite
   ```
-- Check Docker has enough resources (4+ CPUs, 8+ GB RAM allocated in Docker Desktop settings).
+- GPU resource not registered. Fix: reapply NVIDIA device plugin (see setup_cluster.sh).
+- DiskPressure on CPU node. Fix: free disk space, then `kubectl uncordon <node>`.
 
-## 2) Pods stuck in `Pending`
+## 2) ErrImageNeverPull
 
-- Run `kubectl describe pod <pod-name>` and look at the Events section.
-- Confirm node labels exist:
-  ```bash
-  kubectl get nodes --show-labels | grep node_type
-  ```
-  Expected: `node_type=cpu_standard` on server-0, `node_type=gpu_accelerated` on agent-0.
-- Ensure the custom scheduler pod is Running before deploying workloads with `schedulerName: k3d-scheduler`.
-- Ensure RBAC was applied: `kubectl apply -f k8s/bandit-scheduler/rbac-adaptive.yaml`
-
-## 3) RAG service not reachable
-
-- Verify services exist: `kubectl get svc`
-- Check pod readiness: `kubectl get pods -o wide`
-- On Windows, always use `--port-forward` with `run_experiments.py`:
-  ```bash
-  python benchmarks/run_experiments.py --config <name> --port-forward --skip-wait ...
-  ```
-
-## 4) First query is very slow (~60-100s)
-
-Expected — the generation-service pulls and loads `gemma:2b` on first startup via the postStart hook. Subsequent queries are 5-15s. The experiment runner waits 60s before sending queries; increase this if the model is still loading:
+k3s nodes don't share the host Docker daemon. After any `docker build`, reimport:
 
 ```bash
-# In run_all.sh, change:
-sleep 60
-# to:
-sleep 120
+GPU_NODE=<gpu-ip> ./scripts/build_all.sh
 ```
 
-## 5) Adaptive scheduler does not react to shock
+## 3) First query very slow (60-100s)
 
-- Verify adaptive manifests are deployed:
-  - `k8s/bandit-scheduler/scheduler-deployment-adaptive.yaml`
-  - `k8s/bandit-scheduler/rag-deployment-adaptive.yaml`
-- Confirm environment variables in the scheduler deployment:
-  - `SIMULATE_REWARDS=true` (required for k3d CPU-only clusters)
-  - `SHOCK_ENABLED=true`
-  - `SHOCK_QUERY=50`
-
-## 6) Metrics endpoint returns empty history
-
-- Send at least one query to `/query` before checking `/metrics`.
-- Clear between runs with `DELETE /metrics`:
-  ```bash
-  curl -X DELETE http://localhost:8080/metrics
-  ```
-
-## 7) Port-forward drops during benchmark run
-
-k3d port-forwarding is unreliable on Windows/WSL2. The `PortForwardManager` in `run_experiments.py` auto-restarts dead tunnels — expect many `[Restarted] kubectl port-forward` messages, this is normal.
-
-If a query still fails after 3 retries it is recorded as `success: false`. This is expected for the baseline experiment where slow inference causes the rag-app liveness probe to kill the pod.
-
-## 8) Images not found in cluster (ErrImageNeverPull)
-
-k3d nodes do not share the host Docker daemon. After any `docker build`, reimport:
+Expected. The postStart lifecycle hook pulls gemma:2b on first pod startup. `run_all.sh` handles this via `wait_for_model` + `warm_gpu_vram`. If running manually:
 
 ```bash
-k3d image import <image-name> -c fyp
-# or rebuild everything:
-./scripts/build_all.sh
+# Check if model is loaded
+kubectl exec <ollama-pod> -- ollama list
 ```
 
-## 9) UnicodeEncodeError on Windows
+## 4) Gateway returns 503 on /ready
 
-The Windows console uses cp1252 by default. Set UTF-8 before running Python scripts:
+One or both Ollama nodes unreachable. Check:
 
 ```bash
-# Git Bash / WSL
-export PYTHONIOENCODING=utf-8
-
-# PowerShell
-$env:PYTHONIOENCODING="utf-8"
+kubectl get pods -o wide
+kubectl logs deployment/smart-gateway
 ```
 
-## 10) Clean reset between experiments
+Common causes:
+- Ollama pod restarting (model pull in progress). Wait.
+- Pod evicted due to DiskPressure. Fix: free disk, restart deployment.
+- Wrong service name. Verify: `kubectl get svc` should show `ollama-gpu-service` and `ollama-cpu-service`.
 
-`run_all.sh` deletes deployments and services before each experiment automatically. For a manual reset:
+## 5) Adaptive mode not reacting to shock
+
+Check bandit stats during experiment:
 
 ```bash
-kubectl delete deployment --all
-kubectl delete service generation-service rag-app-service --ignore-not-found
+curl $GATEWAY_URL/bandit/stats
 ```
 
-To destroy the entire cluster:
+Look for:
+- `reset_count > 0` — regime change was detected
+- `recovery_remaining` — non-zero means circuit-breaker is active
+- If `reset_count == 0` after shock: detection didn't fire. Possible causes: window not filled (too few GPU queries during detection window), baseline drifted low.
+
+## 6) Metrics endpoint returns empty
+
+Send at least one query before checking. Clear between runs:
 
 ```bash
-k3d cluster delete fyp
+curl -X DELETE $GATEWAY_URL/metrics
 ```
+
+## 7) Port-forward drops during benchmark
+
+Use `--port-forward` flag with run_experiments.py (auto-restarts dead tunnels):
+
+```bash
+python benchmarks/run_experiments.py --config bandit --port-forward
+```
+
+Or use the NodePort directly (no port-forward needed):
+
+```bash
+python benchmarks/run_experiments.py --config bandit --url http://<cpu-node-ip>:32367
+```
+
+## 8) DiskPressure on CPU node (ProDesk)
+
+```bash
+kubectl describe node <cpu-node> | grep DiskPressure
+```
+
+If True: pods get evicted. Fix:
+
+```bash
+# SSH to CPU node
+ssh prox@192.168.0.20
+# Free space
+sudo journalctl --vacuum-size=100M
+docker system prune -af
+sudo k3s crictl rmi --prune
+```
+
+After freeing space, k3s should automatically clear the condition. If pods don't reschedule:
+
+```bash
+kubectl rollout restart deployment/ollama-cpu deployment/smart-gateway
+```
+
+## 9) Clean reset between experiments
+
+`run_all.sh` does this automatically. For manual reset:
+
+```bash
+kubectl set env deployment/smart-gateway ROUTING_MODE=bandit
+kubectl rollout restart deployment/ollama-gpu deployment/ollama-cpu deployment/smart-gateway
+```
+
+To delete everything:
+
+```bash
+kubectl delete -f k8s/03-gateway-app.yaml
+kubectl delete -f k8s/02-ollama-cpu.yaml
+kubectl delete -f k8s/01-ollama-gpu.yaml
+```
+
+## 10) run_multiple.sh fails repeatedly
+
+Check `results/multi_*/failure_log.txt` for per-attempt details. Common causes:
+- DiskPressure (preflight check catches this, waits 60s and retries)
+- Ollama pod crash loop (check `kubectl describe pod`)
+- Network timeout (gateway URL wrong — set `GATEWAY_URL` env var)

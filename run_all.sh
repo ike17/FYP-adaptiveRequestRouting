@@ -21,6 +21,7 @@ RESULTS_DIR="${RESULTS_DIR:-$PROJECT_ROOT/results/$(date +%Y%m%d_%H%M%S)}"
 QUERIES="${QUERIES:-100}"
 RATE="${RATE:-0.9}"
 CONCURRENCY="${CONCURRENCY:-2}"
+GATEWAY_URL="${GATEWAY_URL:-http://localhost:32367}"
 
 mkdir -p "$RESULTS_DIR"
 
@@ -73,6 +74,69 @@ wait_for_model() {
     return 0
 }
 
+# ─── Gateway readiness ──────────────────────────────────────────────────────
+
+wait_for_gateway_ready() {
+    # Poll the gateway /ready endpoint (which pings both ollama nodes).
+    # Returns:
+    #   0 — gateway ready, both ollama nodes reachable
+    #   1 — gateway up but ollama unreachable (likely pod eviction)
+    #   2 — gateway itself unreachable (transient, e.g. pod still starting)
+    local max=120 waited=0
+    log "checking gateway readiness at $GATEWAY_URL/ready..."
+    while [ $waited -lt $max ]; do
+        local code
+        code=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY_URL/ready" 2>/dev/null || echo "000")
+        if [ "$code" = "200" ]; then
+            log "  gateway ready"; return 0
+        elif [ "$code" = "503" ]; then
+            # Gateway is up but one or both ollama nodes unreachable
+            log "  gateway reports nodes not ready (503)"
+            return 1
+        fi
+        # 000 = connection refused (gateway pod not up yet), keep waiting
+        sleep 10; waited=$((waited + 10))
+        log "  waiting for gateway... (${waited}s/${max}s, last HTTP $code)"
+    done
+    log "WARNING: gateway readiness timeout"
+    return 2
+}
+
+handle_gateway_readiness() {
+    wait_for_gateway_ready
+    local rc=$?
+    if [ $rc -eq 0 ]; then return 0; fi
+
+    if [ $rc -eq 1 ]; then
+        # Ollama node likely evicted (e.g. DiskPressure on CPU node)
+        log "  attempting recovery: restarting ollama-cpu..."
+        kubectl rollout restart deployment/ollama-cpu
+        kubectl rollout status deployment/ollama-cpu --timeout=120s || true
+        wait_for_pods "app=ollama-cpu"
+        wait_for_model "app=ollama-cpu"
+
+        # Recheck once
+        wait_for_gateway_ready
+        local rc2=$?
+        if [ $rc2 -eq 0 ]; then
+            log "  recovery successful"; return 0
+        fi
+        log "ERROR: gateway still not ready after ollama-cpu restart (rc=$rc2)"
+        return 1
+    fi
+
+    if [ $rc -eq 2 ]; then
+        # Transient — gateway pod still coming up, give it one more shot
+        log "  gateway unreachable, retrying after 10s..."
+        sleep 10
+        wait_for_gateway_ready
+        local rc2=$?
+        if [ $rc2 -eq 0 ]; then return 0; fi
+        log "ERROR: gateway still unreachable after retry (rc=$rc2)"
+        return 1
+    fi
+}
+
 # ─── Per-experiment logic ────────────────────────────────────────────────────
 
 switch_mode() {
@@ -89,6 +153,7 @@ switch_mode() {
     wait_for_model "app=ollama-gpu"
     wait_for_model "app=ollama-cpu"
     warm_gpu_vram
+    handle_gateway_readiness || { log "ERROR: gateway not ready, aborting $mode"; return 1; }
 }
 
 warm_gpu_vram() {
@@ -127,7 +192,7 @@ run_experiment() {
         --rate "$RATE" \
         --concurrency "$CONCURRENCY" \
         --output "$RESULTS_DIR" \
-        --url "http://localhost:32367" || true
+        --url "$GATEWAY_URL" || true
 
     cleanup_shock
     log "  experiment $mode DONE"

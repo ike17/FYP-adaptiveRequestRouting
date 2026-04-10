@@ -1,14 +1,8 @@
 # generation-service/Dockerfile
 # GPU-bound LLM inference service using Ollama
+# Model is pulled at container startup via the k8s postStart lifecycle hook.
 
 FROM ollama/ollama:latest
-
-# Copy model pull script
-COPY pull-model.sh /pull-model.sh
-RUN chmod +x /pull-model.sh
-
-# Note: Model will be pulled at container startup via postStart hook
-# This avoids baking the model into the image (saves space, allows flexibility)
 
 EXPOSE 11434
 

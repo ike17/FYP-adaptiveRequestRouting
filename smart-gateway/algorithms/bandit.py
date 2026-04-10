@@ -41,7 +41,7 @@ class ThompsonSamplingBandit:
         window_size: int = 10,
         reset_threshold: float = 0.4,
         is_adaptive: bool = False,
-        recovery_window_s: float = 90.0,
+        recovery_window_s: float = 120.0,
     ):
         self.target_latency_ms = target_latency_ms
         self.k = k
@@ -87,7 +87,9 @@ class ThompsonSamplingBandit:
         samples = [np.random.beta(self._alpha[a], self._beta[a]) for a in available]
         return available[int(np.argmax(samples))]
 
-    def update(self, arm: int, latency_ms: float, timed_out: bool = False) -> None:
+    def update(
+        self, arm: int, latency_ms: float, timed_out: bool = False, unreachable: bool = False,
+    ) -> None:
         """
         Update the posterior for `arm` based on observed latency.
 
@@ -95,8 +97,12 @@ class ThompsonSamplingBandit:
             - latency == target  →  reward = 1.0
             - latency >> target  →  reward → 0  (exponential decay)
             - timeout            →  reward = 0.0 (heavy penalty)
+            - unreachable (503)  →  reward = 0.0 + immediate arm block in adaptive mode
+
+        When unreachable=True the node is confirmed dead (503 ConnectError).
+        No statistical evidence window is needed — block immediately.
         """
-        r = 0.0 if timed_out else self._compute_reward(latency_ms)
+        r = 0.0 if (timed_out or unreachable) else self._compute_reward(latency_ms)
 
         self._alpha[arm] += r
         self._beta[arm] += 1.0 - r
@@ -104,6 +110,14 @@ class ThompsonSamplingBandit:
         self._total_pulls += 1
         self._reward_window.append(r)
         self._arm_reward_window[arm].append(r)
+
+        # 503 = node confirmed dead — bypass regime detection, block immediately
+        if unreachable and self._is_adaptive:
+            other = 1 - arm
+            now = time.time()
+            if now >= self._blocked_until[other]:
+                self._blocked_until[arm] = now + self._recovery_window_s
+
         self._check_regime_change()
 
     # ------------------------------------------------------------------

@@ -22,7 +22,7 @@ import os
 import time
 from collections import deque
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
@@ -188,7 +188,7 @@ async def query(request: QueryRequest):
     _query_counter += 1
     qid = _query_counter
     total_start = time.time()
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
 
     logger.info(f"[q{qid}] {request.prompt[:60]}...")
 
@@ -229,6 +229,7 @@ async def query(request: QueryRequest):
     }
 
     request_failed = False
+    node_unreachable = False
     error_code: int = 500
     error_msg:  str = ""
     generated_text = ""
@@ -254,6 +255,7 @@ async def query(request: QueryRequest):
 
     except httpx.ConnectError as e:
         request_failed = True
+        node_unreachable = True
         error_code, error_msg = 503, f"{node_name} ollama unreachable"
         logger.error(f"[q{qid}] connect error on {node_name}: {e}")
 
@@ -276,9 +278,15 @@ async def query(request: QueryRequest):
         generation_time_ms = (time.time() - generation_start) * 1000
         async with _inflight_lock:
             inflight[node] = max(0, inflight[node] - 1)
-        # Always update bandit — timeouts and errors are penalised with reward 0
+        # Always update bandit — timeouts and errors are penalised with reward 0.
+        # unreachable=True triggers immediate arm block in adaptive mode (no
+        # need to wait for regime detection when the node is confirmed dead).
         if ROUTING_MODE in ("bandit", "adaptive"):
-            bandit.update(node, generation_time_ms, timed_out=request_failed)
+            bandit.update(
+                node, generation_time_ms,
+                timed_out=request_failed,
+                unreachable=node_unreachable,
+            )
 
     # ── Record metrics and respond ────────────────────────────────────────────
     total_time_ms = (time.time() - total_start) * 1000
