@@ -4,10 +4,16 @@
 # Every incoming /query request goes through three stages:
 #   1. Retrieval  — vector similarity search against the in-memory ChromaDB store.
 #   2. Routing    — select the target Ollama node (0=GPU, 1=CPU) based on
-#                   ROUTING_MODE: "baseline" (always GPU), "bandit" (Thompson
-#                   Sampling), "static" (pre-trained Random Forest), or
-#                   "adaptive" (Thompson Sampling + circuit-breaker on regime change).
+#                   ROUTING_MODE (see below).
 #   3. Generation — proxy the augmented prompt to the chosen Ollama endpoint.
+#
+# Six routing modes:
+#   baseline       — always GPU
+#   least_in_flight — route to node with fewer in-flight requests (GPU wins ties)
+#   static         — pre-trained Random Forest classifier
+#   bandit_plain   — Thompson Sampling only (no regime detection, no CB)
+#   bandit_regime  — Thompson Sampling + regime detection soft-reset
+#   adaptive       — Thompson Sampling + regime detection + 3-state circuit breaker
 #
 # In-flight request counts are tracked with asyncio counters protected by a
 # single Lock. The gateway MUST run as exactly 1 replica so these counts are
@@ -40,10 +46,12 @@ from algorithms.static_ml import StaticMLRouter
 GPU_OLLAMA_URL      = os.getenv("GPU_OLLAMA_URL",    "http://ollama-gpu-service:11434")
 CPU_OLLAMA_URL      = os.getenv("CPU_OLLAMA_URL",    "http://ollama-cpu-service:11434")
 MODEL_NAME          = os.getenv("MODEL_NAME",        "gemma:2b")
-ROUTING_MODE        = os.getenv("ROUTING_MODE",      "bandit")   # bandit | static | baseline | adaptive
+ROUTING_MODE        = os.getenv("ROUTING_MODE",      "bandit_plain")  # baseline | least_in_flight | static | bandit_plain | bandit_regime | adaptive
 GENERATION_TIMEOUT  = int(os.getenv("GENERATION_TIMEOUT", "30"))
 TARGET_LATENCY_MS   = float(os.getenv("TARGET_LATENCY_MS", "5000"))
 BANDIT_WINDOW_SIZE  = int(os.getenv("BANDIT_WINDOW_SIZE", "5"))
+CB_OPEN_DURATION_S  = float(os.getenv("CB_OPEN_DURATION_S",  "15"))
+CB_HALF_OPEN_DURATION_S = float(os.getenv("CB_HALF_OPEN_DURATION_S", "30"))
 STATIC_MODEL_PATH   = os.getenv("STATIC_MODEL_PATH", "/app/model/gateway_model.pkl")
 METRICS_HISTORY_SIZE = int(os.getenv("METRICS_HISTORY_SIZE", "500"))
 
@@ -89,13 +97,21 @@ async def lifespan(app: FastAPI):
     vector_db = VectorDB()
 
     # Always initialise the bandit so /bandit/stats is available regardless of mode.
-    # is_adaptive=True adds the circuit-breaker layer for the "adaptive" routing mode.
+    # Flags are set based on routing mode:
+    #   bandit_plain  → no regime detection, no CB
+    #   bandit_regime → regime detection only
+    #   adaptive      → regime detection + 3-state circuit breaker
+    _use_regime = ROUTING_MODE in ("bandit_regime", "adaptive")
+    _use_cb = ROUTING_MODE == "adaptive"
     bandit = ThompsonSamplingBandit(
         target_latency_ms=TARGET_LATENCY_MS,
         k=1.0,
         window_size=BANDIT_WINDOW_SIZE,
         reset_threshold=0.4,
-        is_adaptive=(ROUTING_MODE == "adaptive"),
+        enable_regime_detection=_use_regime,
+        enable_cb=_use_cb,
+        cb_open_duration_s=CB_OPEN_DURATION_S,
+        cb_half_open_duration_s=CB_HALF_OPEN_DURATION_S,
     )
 
     if ROUTING_MODE == "static":
@@ -163,19 +179,27 @@ class MetricsResponse(BaseModel):
 # ROUTING HELPERS  (called inside _inflight_lock)
 # ─────────────────────────────────────────────────────────────────────────────
 
+_BANDIT_MODES = {"bandit_plain", "bandit_regime", "adaptive"}
+
+
 def _select_node(augmented_prompt: str) -> int:
     """Return target node id (0=GPU, 1=CPU). Called while holding _inflight_lock."""
     if ROUTING_MODE == "baseline":
         return 0
 
+    if ROUTING_MODE == "least_in_flight":
+        # Prefer GPU on tie (node 0)
+        return 0 if inflight[0] <= inflight[1] else 1
+
     if ROUTING_MODE == "static":
         return static_router.predict(augmented_prompt, inflight[0], inflight[1])
 
-    if ROUTING_MODE == "adaptive":
+    if ROUTING_MODE in _BANDIT_MODES:
         return bandit.select_arm()
 
-    # bandit (default)
-    return bandit.select_arm()
+    # Unknown mode — default to GPU
+    logger.warning(f"unknown routing mode '{ROUTING_MODE}', defaulting to GPU")
+    return 0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -281,7 +305,7 @@ async def query(request: QueryRequest):
         # Always update bandit — timeouts and errors are penalised with reward 0.
         # unreachable=True triggers immediate arm block in adaptive mode (no
         # need to wait for regime detection when the node is confirmed dead).
-        if ROUTING_MODE in ("bandit", "adaptive"):
+        if ROUTING_MODE in _BANDIT_MODES:
             bandit.update(
                 node, generation_time_ms,
                 timed_out=request_failed,

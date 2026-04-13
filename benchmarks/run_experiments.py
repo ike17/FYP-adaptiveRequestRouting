@@ -6,14 +6,18 @@ Automated experiment runner for the L7 Smart Gateway evaluation.
 Queries are dispatched concurrently with Poisson inter-arrival times to
 simulate realistic multi-user traffic.
 
-A cluster shock (GPU node: CPU stress + Ollama queue flood) is injected at
-dispatch index 50 by applying k8s/04-shock-job.yaml via kubectl.
+At the midpoint (n_queries // 2), the arrival rate ramps up to ensure
+sustained overload long enough to expose routing-policy differences
+under contention.
 
 Usage:
     python run_experiments.py --config bandit --queries 100 --output results/
 
-    # With managed port-forward (recommended on Windows/WSL2):
-    python run_experiments.py --config bandit --queries 100 --port-forward
+    # Custom ramp rate:
+    python run_experiments.py --config bandit --rate 1.0 --ramp-rate 4.0
+
+    # No ramp (constant rate throughout):
+    python run_experiments.py --config bandit --rate 2.0 --no-ramp
 
     # Direct URL (gateway already port-forwarded externally):
     python run_experiments.py --config static --url http://localhost:8080
@@ -38,14 +42,13 @@ from tqdm import tqdm
 # =============================================================================
 
 DEFAULT_QUERIES     = 100
-DEFAULT_RATE        = 2.0   # mean queries per second (Poisson arrivals)
-DEFAULT_CONCURRENCY = 4     # max in-flight requests at once
+DEFAULT_RATE        = 1.0   # mean queries per second (Poisson arrivals) — normal phase
+DEFAULT_RAMP_RATE   = 4.0   # arrival rate after overload ramp
+DEFAULT_CONCURRENCY = 8     # max in-flight requests at once
 DEFAULT_TIMEOUT     = 180   # seconds per query
-SHOCK_QUERY_INDEX   = 50    # 0-based dispatch index at which shock is injected
 PORT_FORWARD_LOCAL_PORT = 8080
 
 _PROMPTS_FILE = Path(__file__).parent / "prompts.json"
-_SHOCK_JOB    = Path(__file__).parent.parent / "k8s" / "04-shock-job.yaml"
 
 
 def load_prompts() -> list[str]:
@@ -297,19 +300,23 @@ async def run_experiment(
     config_name: str,
     output_dir: Path,
     rate: float = DEFAULT_RATE,
+    ramp_rate: float | None = DEFAULT_RAMP_RATE,
     concurrency: int = DEFAULT_CONCURRENCY,
     pf_manager: PortForwardManager = None,
 ) -> dict:
     """
     Dispatch n_queries as a Poisson process (mean rate req/s, capped at concurrency).
-    Inject a cluster shock job at dispatch index SHOCK_QUERY_INDEX (0-based).
+    At the midpoint (n_queries // 2) the arrival rate ramps up to ramp_rate to
+    ensure sustained overload long enough to expose routing-policy differences.
     """
     prompts = load_prompts()
 
+    overload_index = n_queries // 2  # 0-based dispatch index
+    ramp_desc = f"Rate ramp {rate:.1f} → {ramp_rate:.1f} req/s at Q{overload_index+1}" if ramp_rate else "No ramp"
     print(f"\n{'='*60}")
     print(f"EXPERIMENT: {config_name}")
     print(f"Queries: {n_queries} | Rate: {rate:.1f} req/s | Concurrency: {concurrency}")
-    print(f"Shock: kubectl apply at dispatch index {SHOCK_QUERY_INDEX}")
+    print(f"{ramp_desc}")
     print(f"{'='*60}\n")
 
     sem = asyncio.Semaphore(concurrency)
@@ -333,13 +340,10 @@ async def run_experiment(
             tasks.append(task)
             pbar.update(1)
 
-            # Inject cluster shock at the configured index
-            if i == SHOCK_QUERY_INDEX and _SHOCK_JOB.exists():
-                print(f"\n[!] INJECTING CLUSTER SHOCK (query index {i})...")
-                subprocess.run(
-                    ["kubectl", "apply", "-f", str(_SHOCK_JOB)],
-                    check=False,
-                )
+            # Rate ramp at the dynamic midpoint
+            if i == overload_index and ramp_rate is not None:
+                print(f"\n[!] RATE RAMP: {rate:.1f} → {ramp_rate:.1f} req/s (query {i+1})")
+                rate = ramp_rate
 
             # Poisson inter-arrival: Exp(mean = 1/rate) seconds between dispatches
             if i < n_queries - 1:
@@ -360,6 +364,7 @@ async def run_experiment(
         stats = {
             "config": config_name,
             "total_queries": n_queries,
+            "overload_query": overload_index + 1,  # 1-based query number
             "successful_queries": success_count,
             "success_rate": success_count / n_queries,
             "mean_latency_ms": float(np.mean(latencies)),
@@ -435,7 +440,15 @@ async def async_main():
     )
     parser.add_argument(
         "--rate", type=float, default=DEFAULT_RATE,
-        help=f"Mean query arrival rate req/s (default: {DEFAULT_RATE})"
+        help=f"Mean query arrival rate req/s — normal phase (default: {DEFAULT_RATE})"
+    )
+    parser.add_argument(
+        "--ramp-rate", type=float, default=DEFAULT_RAMP_RATE,
+        help=f"Arrival rate after overload ramp at midpoint (default: {DEFAULT_RAMP_RATE})"
+    )
+    parser.add_argument(
+        "--no-ramp", action="store_true",
+        help="Disable rate ramp (constant rate throughout)"
     )
     parser.add_argument(
         "--delay", type=float, default=None,
@@ -460,6 +473,7 @@ async def async_main():
 
     args = parser.parse_args()
     rate = 1.0 / args.delay if args.delay is not None else args.rate
+    ramp_rate = None if args.no_ramp else args.ramp_rate
 
     pf_manager = None
     if args.port_forward:
@@ -488,16 +502,9 @@ async def async_main():
         config_name=args.config,
         output_dir=Path(args.output),
         rate=rate,
+        ramp_rate=ramp_rate,
         concurrency=args.concurrency,
         pf_manager=pf_manager,
-    )
-
-    # Clean up shock job — idempotent if it was never triggered or already gone
-    subprocess.run(
-        ["kubectl", "delete", "job", "cpu-shock", "--ignore-not-found"],
-        check=False,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
     )
 
     if pf_manager:

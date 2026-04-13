@@ -16,6 +16,7 @@ spec:
   ports:
     - port: 8000
       targetPort: 8000
+      nodePort: 32367
       name: http
   type: NodePort
 
@@ -40,7 +41,7 @@ spec:
         node_type: cpu_standard
       containers:
         - name: gateway
-          image: smart-gateway:v1
+          image: smart-gateway:v5
           imagePullPolicy: Never
           ports:
             - containerPort: 8000

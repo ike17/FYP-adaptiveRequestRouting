@@ -20,6 +20,13 @@ NUM_RUNS="${NUM_RUNS:-10}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-20}"
 MULTI_DIR="$PROJECT_ROOT/results/multi_$(date +%Y%m%d_%H%M%S)"
 
+# Pass through experiment config env vars to run_all.sh
+export QUERIES="${QUERIES:-400}"
+export RATE="${RATE:-1.0}"
+export RAMP_RATE="${RAMP_RATE:-12.0}"
+export CONCURRENCY="${CONCURRENCY:-32}"
+export GENERATION_TIMEOUT="${GENERATION_TIMEOUT:-15}"
+
 mkdir -p "$MULTI_DIR"
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
@@ -53,9 +60,10 @@ preflight_check() {
 # ─── Main loop ──────────────────────────────────────────────────────────────
 
 log "Starting multi-run experiment suite"
-log "  Target runs: $NUM_RUNS"
-log "  Max attempts: $MAX_ATTEMPTS"
-log "  Output: $MULTI_DIR"
+log "  Target runs  : $NUM_RUNS"
+log "  Max attempts : $MAX_ATTEMPTS"
+log "  Output       : $MULTI_DIR"
+log "  Config       : Q=$QUERIES rate=$RATE ramp=$RAMP_RATE conc=$CONCURRENCY timeout=${GENERATION_TIMEOUT}s"
 
 completed=0
 attempt=0
@@ -78,19 +86,20 @@ while [ "$completed" -lt "$NUM_RUNS" ] && [ "$attempt" -lt "$MAX_ATTEMPTS" ]; do
         continue
     fi
 
-    # Write to temp dir; promote to final on success
-    tmp_dir="$MULTI_DIR/.tmp_run_${run_num}"
-    final_dir="$MULTI_DIR/run_${run_num}"
+    # Write to temp dir; promote to final timestamped dir on success
+    run_ts=$(date +%Y%m%d_%H%M%S)
+    tmp_dir="$MULTI_DIR/.tmp_${run_ts}"
+    final_dir="$MULTI_DIR/${run_ts}"
     mkdir -p "$tmp_dir"
 
     export RESULTS_DIR="$tmp_dir"
 
     if bash "$PROJECT_ROOT/run_all.sh"; then
-        # Success — promote temp to final
+        # Success — promote temp to timestamped final dir
         mv "$tmp_dir" "$final_dir"
         completed=$((completed + 1))
         log "Run $run_num SUCCEEDED (attempt $attempt). $completed/$NUM_RUNS complete."
-        echo "attempt=$attempt run=$run_num status=OK timestamp=$(date -Iseconds)" \
+        echo "attempt=$attempt run=$run_num dir=${run_ts} status=OK timestamp=$(date -Iseconds)" \
             >> "$MULTI_DIR/failure_log.txt"
     else
         # Failure — log details, clean up temp
@@ -98,7 +107,7 @@ while [ "$completed" -lt "$NUM_RUNS" ] && [ "$attempt" -lt "$MAX_ATTEMPTS" ]; do
 
         # Try to identify which mode failed
         local_modes=""
-        for mode in baseline static bandit adaptive; do
+        for mode in baseline least_in_flight static bandit_plain bandit_regime adaptive; do
             if [ ! -f "$tmp_dir/${mode}_summary.json" ]; then
                 local_modes="${local_modes}${local_modes:+,}$mode"
             fi

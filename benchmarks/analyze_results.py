@@ -22,20 +22,33 @@ FIGURE_DPI  = 300
 FIGURE_SIZE = (10, 6)
 
 # canonical experiment order used consistently across all plots
-EXPERIMENT_ORDER = ["baseline", "static", "bandit", "adaptive"]
+EXPERIMENT_ORDER = ["baseline", "least_in_flight", "static", "bandit_plain", "bandit_regime", "adaptive"]
 
 COLORS = {
-    "baseline": "#e74c3c",
-    "static":   "#2ecc71",
-    "bandit":   "#3498db",
-    "adaptive": "#9b59b6",
+    "baseline":        "#e74c3c",
+    "least_in_flight": "#f39c12",
+    "static":          "#2ecc71",
+    "bandit_plain":    "#3498db",
+    "bandit_regime":   "#1abc9c",
+    "adaptive":        "#9b59b6",
 }
 
-# shock is injected at dispatch index 50 (query_number 51)
-SHOCK_QUERY = 51
+LABELS = {
+    "baseline":        "Baseline",
+    "least_in_flight": "Least In-Flight",
+    "static":          "Static ML",
+    "bandit_plain":    "Bandit (plain)",
+    "bandit_regime":   "Bandit (regime)",
+    "adaptive":        "Adaptive",
+}
+
+# Overload query number (1-based). Derived from summary JSON at load time;
+# falls back to 51 for legacy results that predate the overload_query field.
+OVERLOAD_QUERY = 51
 
 
 def load_results(results_dir: Path) -> tuple[dict, dict]:
+    global OVERLOAD_QUERY
     results   = {}
     summaries = {}
     for file in results_dir.glob("*_results.json"):
@@ -46,15 +59,20 @@ def load_results(results_dir: Path) -> tuple[dict, dict]:
         config = file.stem.replace("_summary", "")
         with open(file) as f:
             summaries[config] = json.load(f)
+    # Derive overload query from the first summary that has it
+    for s in summaries.values():
+        if "overload_query" in s:
+            OVERLOAD_QUERY = s["overload_query"]
+            break
     return results, summaries
 
 
 def get_latencies(data: list, phase: str = "full") -> list[float]:
     successful = [r for r in data if r.get("success")]
     if phase == "pre":
-        successful = [r for r in successful if r.get("query_number", 0) < SHOCK_QUERY]
+        successful = [r for r in successful if r.get("query_number", 0) < OVERLOAD_QUERY]
     elif phase == "post":
-        successful = [r for r in successful if r.get("query_number", 0) >= SHOCK_QUERY]
+        successful = [r for r in successful if r.get("query_number", 0) >= OVERLOAD_QUERY]
     return [r["total_time_ms"] for r in successful]
 
 
@@ -149,14 +167,14 @@ def create_latency_over_time(results: dict, output_path: Path):
         latencies = [r["total_time_ms"] for r in successful]
         smooth    = pd.Series(latencies).rolling(window=5, min_periods=1).mean().tolist()
         ax.scatter(queries, latencies, color=COLORS.get(config, 'gray'), alpha=0.15, s=10)
-        ax.plot(queries, smooth, label=config, color=COLORS.get(config, 'gray'),
+        ax.plot(queries, smooth, label=LABELS.get(config, config), color=COLORS.get(config, 'gray'),
                 alpha=0.9, linewidth=2)
 
-    ax.axvline(x=SHOCK_QUERY, color='red', linestyle='--', alpha=0.7,
-               label=f'GPU Shock (Q{SHOCK_QUERY})', linewidth=1.5)
+    ax.axvline(x=OVERLOAD_QUERY, color='red', linestyle='--', alpha=0.7,
+               label=f'Overload (Q{OVERLOAD_QUERY})', linewidth=1.5)
     ax.set_xlabel('Query Number', fontsize=12)
     ax.set_ylabel('Latency (ms)', fontsize=12)
-    ax.set_title('Latency Over Time — Adaptive Behaviour Under GPU Shock\n'
+    ax.set_title('Latency Over Time — Routing Behaviour Under Traffic Overload\n'
                  '(dots = raw, lines = 5-query rolling avg)', fontsize=14)
     ax.legend(loc='upper right')
     plt.tight_layout()
@@ -232,13 +250,13 @@ def create_success_rate_over_time(results: dict, output_path: Path, window: int 
             w = data[i:i + window]
             rates.append(sum(1 for r in w if r.get('success')) / window * 100)
             qnums.append(data[i + window - 1].get('query_number', i + window))
-        ax.plot(qnums, rates, label=config, color=COLORS.get(config, 'gray'), linewidth=2)
+        ax.plot(qnums, rates, label=LABELS.get(config, config), color=COLORS.get(config, 'gray'), linewidth=2)
 
-    ax.axvline(x=SHOCK_QUERY, color='red', linestyle='--', alpha=0.7,
-               label=f'GPU Shock (Q{SHOCK_QUERY})', linewidth=1.5)
+    ax.axvline(x=OVERLOAD_QUERY, color='red', linestyle='--', alpha=0.7,
+               label=f'Overload (Q{OVERLOAD_QUERY})', linewidth=1.5)
     ax.set_xlabel('Query Number', fontsize=12)
     ax.set_ylabel(f'Success Rate % (rolling {window}-query window)', fontsize=12)
-    ax.set_title('Success Rate Over Time — Shock Resilience\n'
+    ax.set_title('Success Rate Over Time — Overload Resilience\n'
                  '(all queries on x-axis; failed queries count against rate)', fontsize=14)
     ax.set_ylim([0, 105])
     ax.legend(loc='lower left')
@@ -256,21 +274,22 @@ def create_pre_post_success_comparison(results: dict, output_path: Path):
     pre_rates, post_rates = [], []
     for config in configs:
         data  = results[config]
-        pre   = [r for r in data if r.get('query_number', 0) < SHOCK_QUERY]
-        post  = [r for r in data if r.get('query_number', 0) >= SHOCK_QUERY]
+        pre   = [r for r in data if r.get('query_number', 0) < OVERLOAD_QUERY]
+        post  = [r for r in data if r.get('query_number', 0) >= OVERLOAD_QUERY]
         pre_rates.append(sum(1 for r in pre  if r.get('success')) / max(len(pre),  1) * 100)
         post_rates.append(sum(1 for r in post if r.get('success')) / max(len(post), 1) * 100)
 
     fig, ax = plt.subplots(figsize=FIGURE_SIZE)
     x     = np.arange(len(configs))
     width = 0.35
-    ax.bar(x - width / 2, pre_rates,  width, label=f'Pre-shock (Q1-{SHOCK_QUERY-1})',
+    n_total = max((len(results[c]) for c in configs), default=100)
+    ax.bar(x - width / 2, pre_rates,  width, label=f'Normal (Q1-{OVERLOAD_QUERY-1})',
            color='#2ecc71', edgecolor='black', linewidth=0.5)
-    ax.bar(x + width / 2, post_rates, width, label=f'Post-shock (Q{SHOCK_QUERY}-100)',
+    ax.bar(x + width / 2, post_rates, width, label=f'Overload (Q{OVERLOAD_QUERY}-{n_total})',
            color='#e74c3c', edgecolor='black', linewidth=0.5, alpha=0.85)
     ax.set_xlabel('Routing Mode', fontsize=12)
     ax.set_ylabel('Success Rate (%)', fontsize=12)
-    ax.set_title('Pre-shock vs Post-shock Success Rate', fontsize=14)
+    ax.set_title('Normal vs Overload Phase Success Rate', fontsize=14)
     ax.set_xticks(x)
     ax.set_xticklabels(configs, fontsize=11)
     ax.set_ylim([0, 110])
@@ -354,12 +373,12 @@ def create_token_throughput_chart(summaries: dict, output_path: Path):
 
 def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
     """
-    Post-shock latency recovery plot.
-    X-axis: queries relative to shock (0 = first post-shock query).
+    Post-overload latency recovery plot.
+    X-axis: queries relative to overload start (0 = first overload query).
     Y-axis: 5-query rolling average latency.
-    Horizontal dashed line per mode = pre-shock mean latency.
+    Horizontal dashed line per mode = normal-phase mean latency.
     Reports the query index at which each mode first drops back below
-    pre_shock_mean * 1.2 (20% tolerance band).
+    normal_mean * 1.2 (20% tolerance band).
     """
     configs = [c for c in EXPERIMENT_ORDER if c in results]
     if not configs:
@@ -377,23 +396,24 @@ def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
         if not successful:
             continue
 
-        pre_lats  = [r["total_time_ms"] for r in successful if r.get("query_number", 0) < SHOCK_QUERY]
-        post_lats = [r["total_time_ms"] for r in successful if r.get("query_number", 0) >= SHOCK_QUERY]
+        pre_lats  = [r["total_time_ms"] for r in successful if r.get("query_number", 0) < OVERLOAD_QUERY]
+        post_lats = [r["total_time_ms"] for r in successful if r.get("query_number", 0) >= OVERLOAD_QUERY]
 
         if not pre_lats or not post_lats:
             continue
 
         pre_mean = float(np.mean(pre_lats))
 
-        # Rolling average over post-shock queries
+        # Rolling average over overload-phase queries
         post_series = pd.Series(post_lats)
         rolling_avg = post_series.rolling(window=window, min_periods=1).mean().tolist()
         x_vals = list(range(len(rolling_avg)))
 
         color = COLORS.get(config, 'gray')
-        ax.plot(x_vals, rolling_avg, label=config, color=color, linewidth=2)
+        lbl = LABELS.get(config, config)
+        ax.plot(x_vals, rolling_avg, label=lbl, color=color, linewidth=2)
         ax.axhline(y=pre_mean, color=color, linestyle=':', alpha=0.5,
-                   label=f'{config} pre-shock mean ({pre_mean:.0f}ms)')
+                   label=f'{lbl} normal mean ({pre_mean:.0f}ms)')
 
         # Find first recovery point
         threshold = pre_mean * 1.2
@@ -403,10 +423,10 @@ def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
                 break
 
     ax.axhline(y=0, color='gray', linewidth=0.5, alpha=0.3)
-    ax.set_xlabel(f'Queries after shock (query {SHOCK_QUERY})', fontsize=12)
+    ax.set_xlabel(f'Queries after overload (query {OVERLOAD_QUERY})', fontsize=12)
     ax.set_ylabel('Latency ms (5-query rolling avg)', fontsize=12)
-    ax.set_title('Post-shock Latency Recovery\n'
-                 '(x=0 is first post-shock query; dotted lines = pre-shock mean)', fontsize=14)
+    ax.set_title('Post-overload Latency Recovery\n'
+                 '(x=0 is first overload query; dotted lines = normal-phase mean)', fontsize=14)
     ax.legend(loc='upper right', fontsize=8)
     plt.tight_layout()
     plt.savefig(output_path / 'recovery_chart.png', dpi=FIGURE_DPI, bbox_inches='tight')
@@ -414,9 +434,9 @@ def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
     print("saved: recovery_chart.png")
 
     if recovery_queries:
-        print("\n--- recovery (first query ≤ pre-shock mean × 1.2) ---")
+        print("\n--- recovery (first query ≤ normal-phase mean × 1.2) ---")
         for config, q in recovery_queries.items():
-            print(f"  {config}: query +{q} after shock")
+            print(f"  {config}: query +{q} after overload")
 
 
 # =============================================================================
@@ -478,27 +498,21 @@ def run_comparison(label, lat1, lat2, config1, config2, n_comparisons) -> dict |
 
 
 def perform_statistical_tests(results: dict, output_path: Path) -> list:
-    pairs = [
-        ("baseline", "static"),
-        ("baseline", "bandit"),
-        ("baseline", "adaptive"),
-        ("static",   "bandit"),
-        ("static",   "adaptive"),
-        ("bandit",   "adaptive"),
-    ]
-    n_comparisons = len(pairs)   # 6 → Bonferroni alpha = 0.05/6 ≈ 0.0083
+    # Build pairs dynamically from available modes (in canonical order)
+    present = [m for m in EXPERIMENT_ORDER if m in results]
+    pairs = [(present[i], present[j]) for i in range(len(present)) for j in range(i+1, len(present))]
+    n_comparisons = len(pairs)
     comparisons   = []
 
+    n_total = max((len(results[c]) for c in present), default=100)
     for config1, config2 in pairs:
-        if config1 not in results or config2 not in results:
-            continue
         for phase in ("full", "pre", "post"):
             lat1 = get_latencies(results[config1], phase)
             lat2 = get_latencies(results[config2], phase)
             phase_label = {
-                "full": "full (q1-100)",
-                "pre":  f"pre-shock (q1-{SHOCK_QUERY-1})",
-                "post": f"post-shock (q{SHOCK_QUERY}-100)",
+                "full": f"full (q1-{n_total})",
+                "pre":  f"normal (q1-{OVERLOAD_QUERY-1})",
+                "post": f"overload (q{OVERLOAD_QUERY}-{n_total})",
             }[phase]
             result = run_comparison(phase_label, lat1, lat2, config1, config2, n_comparisons)
             if result:
@@ -588,8 +602,8 @@ def create_summary_table(summaries: dict, results: dict, output_path: Path) -> p
             "P99 (ms)":        f"{s.get('p99_latency_ms', 0):.1f}",
             "P99/P50":         f"{tail_ratio}" if tail_ratio else "n/a",
             "Eff. lat (ms)":   f"{eff_latency}" if eff_latency else "n/a",
-            "Pre-shock mean":  f"{pre_mean}" if pre_mean is not None else "n/a",
-            "Post-shock mean": f"{post_mean}" if post_mean is not None else "n/a",
+            "Normal mean":   f"{pre_mean}" if pre_mean is not None else "n/a",
+            "Overload mean": f"{post_mean}" if post_mean is not None else "n/a",
             "vs baseline":     f"{improvement:+.1f}%",
             "% GPU":           gpu_pct,
             "% CPU":           cpu_pct,

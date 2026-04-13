@@ -402,3 +402,107 @@ Rewrite for current architecture before thesis submission.
 - **Redis or etcd for inflight state** instead of in-memory. Removes single-replica constraint. Overkill for 2-node FYP.
 - **Prometheus metrics** instead of in-memory deque. Native k8s observability. But the deque works fine for 100-query experiments.
 - **Helm chart or Kustomize** instead of flat YAML + kubectl set env. More reproducible mode switching. But shell scripts are easier to debug for a solo project.
+
+---
+
+## Session Summary — 2026-04-12/13 (Phase 2 + Production Results)
+
+### What changed from the state above
+
+**This entire document above is now partially outdated.** The project was upgraded from smart-gateway:v4 (4 modes, shock injection) to smart-gateway:v5 (6 modes, rate ramp, 3-state CB). Key changes:
+
+#### Gateway v5 — 6 routing modes (algorithms/bandit.py rewritten)
+
+| Mode | Description |
+|------|-------------|
+| `baseline` | Always GPU (unchanged) |
+| `least_in_flight` | Route to node with fewer in-flight requests; GPU wins ties (new) |
+| `static` | Random Forest classifier (unchanged) |
+| `bandit_plain` | Thompson Sampling only — no regime detection, no CB (new) |
+| `bandit_regime` | Thompson Sampling + regime detection + posterior soft-reset (was `bandit`) |
+| `adaptive` | bandit_regime + **3-state circuit breaker** CLOSED→OPEN→HALF_OPEN (replaces old timer CB) |
+
+**Old `bandit` mode = new `bandit_regime`. Old `adaptive` timer-block = replaced by proper 3-state CB.**
+
+#### 3-state circuit breaker (algorithms/bandit.py)
+
+- **CLOSED**: normal operation
+- **OPEN**: arm blocked for `cb_open_duration_s=15s` after regime change detected
+- **HALF_OPEN**: graduated probe admission — 25% for first 15s, then 50% for next 15s; mean probe reward ≥0.3 → CLOSED; 3+ probes <0.1 → back to OPEN
+
+Constructor flags: `enable_regime_detection`, `enable_cb` (separates the three variants cleanly).
+
+#### Shock → Rate ramp
+
+Old: artificial `04-shock-job.yaml` (CPU stress + GPU queue flood at query 50).
+New: Poisson rate ramp from λ=1.0 → λ=12.0 at `n_queries // 2` (dynamic midpoint). No external job. Natural overload from traffic alone.
+
+#### run_all.sh — key additions
+- `GENERATION_TIMEOUT` env var passed to gateway via `kubectl set env` (SLA lever)
+- `warm_cpu_ram()` — pre-warms CPU node before each mode (eliminates cold-start penalty)
+- `QUERIES=400, RAMP_RATE=12.0, CONCURRENCY=32` stress preset
+- Config banner logged at start of each run
+
+#### run_multiple.sh — fixed
+- Individual run dirs now named `YYYYMMDD_HHMMSS` (matching run_all.sh), not `run_1`, `run_2`
+- Env vars (`GENERATION_TIMEOUT`, `QUERIES`, `RAMP_RATE`, `CONCURRENCY`) exported and passed through
+- 6-mode failure detection (was hardcoded to 4 modes)
+
+#### analyze_multiple.py — fixed
+- `_discover_run_dirs()` discovers both old `run_N` and new `YYYYMMDD_HHMMSS` directories by regex
+- Backward-compatible
+
+---
+
+### SLA Calibration Progression
+
+| Run dir | Timeout | Queries | λ ramp | Baseline success | Finding |
+|---------|---------|---------|--------|------------------|---------|
+| 20260411_164639 | 30s | 100 | 8.0 | 100% | Too lenient — GPU never fails |
+| 20260411_171323 | 30s | 100 | 12.0 | 100% | Same — arrival rate can't break GPU at 30s |
+| 20260411_215535 | 10s | 100 | 12.0 | 91% | Too tight — CPU also times out, offload useless |
+| 20260411_235854 | 15s | 100 | 12.0 | 100% | Only 50 overload queries — not enough pressure |
+| 20260412_002239 | 15s | 400 | 12.0 | 91.5% | **First real differentiation** — 6 modes, static 77%, bandit_regime 86% |
+| 20260412_113759 | 20s | 400 | 12.0 | 99.5% | Too lenient again — baseline near-perfect |
+| multi_20260412_172649 | **15s** | **400** | **12.0** | 89.9% | **Production suite — 10/10 runs, final results** |
+
+**Chosen config: Q=400, rate=1.0→12.0, concurrency=32, GENERATION_TIMEOUT=15s.**
+
+---
+
+### Final Results (10-run suite, 4000 queries per mode)
+
+| Mode | Success | Mean (ms) | Overload mean (ms) | % GPU |
+|------|---------|-----------|--------------------|-------|
+| Baseline | 89.9% | 6,711 | 13,123 | 100% |
+| Bandit (plain) | 89.2% | 6,828 | 13,160 | 99% |
+| Bandit (regime) | 87.5% | 5,918 | 11,506 | 99% |
+| Adaptive | 85.7% | 5,567 | 10,872 | 99% |
+| Static ML | 80.7% | 3,545 | 6,083 | 97% |
+| Least In-Flight | 80.3% | 4,754 | 8,362 | 96% |
+
+**Key stats:**
+- `baseline vs bandit_plain`: p=0.098 (non-sig), d=−0.019 → TS matches oracle with zero config
+- `bandit_plain vs adaptive (overload)`: p<0.001, d=0.604 (medium) → adaptive 17.4% lower overload latency
+- `bandit_regime vs adaptive (full)`: p=0.151 (non-sig), d=0.063 → CB adds negligible improvement over regime detection alone at this SLA
+
+**Why CPU offload doesn't improve success rate:** At λ=12, the CPU node's queue overflows under the surge (CPU throughput ≈1 query/15s). Routing even 2–4% to CPU during overload produces more timeouts than it saves. Bandit_plain correctly learns to stay on GPU. Static/LIF blindly route to CPU and pay the penalty.
+
+**Thesis story:** bandit_plain is the success-rate protagonist (≈ baseline, no prior knowledge, beats trained static by 8.5pp). Adaptive is the latency protagonist (best overload latency, medium effect vs bandit_plain). Static/LIF are negative results.
+
+---
+
+### Files updated in this session
+
+| File | Change |
+|------|--------|
+| `smart-gateway/algorithms/bandit.py` | Rewritten: CBState enum, enable_regime_detection + enable_cb flags, 3-state CB |
+| `smart-gateway/main.py` | 6 modes, new env vars (CB_OPEN_DURATION_S, CB_HALF_OPEN_DURATION_S) |
+| `benchmarks/run_experiments.py` | Dynamic midpoint ramp, overload_query in summary JSON |
+| `benchmarks/analyze_results.py` | 6-mode EXPERIMENT_ORDER/COLORS/LABELS, dynamic pairs, overload_query from JSON |
+| `benchmarks/analyze_multiple.py` | Same 6-mode updates + `_discover_run_dirs()` for timestamped dirs |
+| `run_all.sh` | GENERATION_TIMEOUT, warm_cpu_ram(), 6 modes, config banner |
+| `run_multiple.sh` | Timestamped dirs, env var passthrough, 6-mode failure detection |
+| `k8s/03-gateway-app.yaml` | Image bumped to smart-gateway:v5 |
+| `FYP_Draft_Updated(1).md` | Methodology (§3), implementation (§4), results (§5), conclusion (§6) rewritten for v5 |
+| `results/*/config.txt` | Created for each run dir documenting parameters and observations |
