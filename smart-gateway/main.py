@@ -1,27 +1,3 @@
-# smart-gateway/main.py
-# L7 Smart Gateway — replaces the rag-app + custom-scheduler pair.
-#
-# Every incoming /query request goes through three stages:
-#   1. Retrieval  — vector similarity search against the in-memory ChromaDB store.
-#   2. Routing    — select the target Ollama node (0=GPU, 1=CPU) based on
-#                   ROUTING_MODE (see below).
-#   3. Generation — proxy the augmented prompt to the chosen Ollama endpoint.
-#
-# Six routing modes:
-#   baseline       — always GPU
-#   least_in_flight — route to node with fewer in-flight requests (GPU wins ties)
-#   static         — pre-trained Random Forest classifier
-#   bandit_plain   — Thompson Sampling only (no regime detection, no CB)
-#   bandit_regime  — Thompson Sampling + regime detection soft-reset
-#   adaptive       — Thompson Sampling + regime detection + 3-state circuit breaker
-#
-# In-flight request counts are tracked with asyncio counters protected by a
-# single Lock. The gateway MUST run as exactly 1 replica so these counts are
-# globally accurate across all concurrent requests.
-#
-# Bandit posteriors are updated inline after every request (including failures)
-# so the gateway reacts to latency degradation within the same experiment run.
-
 import asyncio
 import logging
 import os
@@ -39,14 +15,10 @@ from vectordb import VectorDB
 from algorithms.bandit import ThompsonSamplingBandit
 from algorithms.static_ml import StaticMLRouter
 
-# ─────────────────────────────────────────────────────────────────────────────
-# CONFIGURATION
-# ─────────────────────────────────────────────────────────────────────────────
-
 GPU_OLLAMA_URL      = os.getenv("GPU_OLLAMA_URL",    "http://ollama-gpu-service:11434")
 CPU_OLLAMA_URL      = os.getenv("CPU_OLLAMA_URL",    "http://ollama-cpu-service:11434")
 MODEL_NAME          = os.getenv("MODEL_NAME",        "gemma:2b")
-ROUTING_MODE        = os.getenv("ROUTING_MODE",      "bandit_plain")  # baseline | least_in_flight | static | bandit_plain | bandit_regime | adaptive
+ROUTING_MODE        = os.getenv("ROUTING_MODE",      "bandit_plain")
 GENERATION_TIMEOUT  = int(os.getenv("GENERATION_TIMEOUT", "30"))
 TARGET_LATENCY_MS   = float(os.getenv("TARGET_LATENCY_MS", "5000"))
 BANDIT_WINDOW_SIZE  = int(os.getenv("BANDIT_WINDOW_SIZE", "5"))
@@ -64,11 +36,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SHARED STATE  (all writes protected by the appropriate lock)
-# ─────────────────────────────────────────────────────────────────────────────
-
-# In-flight request counts per node — must only be modified while holding _inflight_lock
 _inflight_lock = asyncio.Lock()
 inflight: dict[int, int] = {0: 0, 1: 0}
 
@@ -77,16 +44,11 @@ _metrics_lock = asyncio.Lock()
 _query_counter = 0
 _startup_time = time.time()
 
-# Initialised in lifespan
 vector_db:     Optional[VectorDB]             = None
 bandit:        Optional[ThompsonSamplingBandit] = None
 static_router: Optional[StaticMLRouter]       = None
 http_client:   Optional[httpx.AsyncClient]    = None
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# LIFESPAN
-# ─────────────────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -96,11 +58,6 @@ async def lifespan(app: FastAPI):
 
     vector_db = VectorDB()
 
-    # Always initialise the bandit so /bandit/stats is available regardless of mode.
-    # Flags are set based on routing mode:
-    #   bandit_plain  → no regime detection, no CB
-    #   bandit_regime → regime detection only
-    #   adaptive      → regime detection + 3-state circuit breaker
     _use_regime = ROUTING_MODE in ("bandit_regime", "adaptive")
     _use_cb = ROUTING_MODE == "adaptive"
     bandit = ThompsonSamplingBandit(
@@ -131,10 +88,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Smart Gateway", version="1.0.0", lifespan=lifespan)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PYDANTIC MODELS
-# ─────────────────────────────────────────────────────────────────────────────
 
 class QueryRequest(BaseModel):
     prompt: str = Field(..., min_length=1)
@@ -175,20 +128,14 @@ class MetricsResponse(BaseModel):
     cpu_in_flight: int
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ROUTING HELPERS  (called inside _inflight_lock)
-# ─────────────────────────────────────────────────────────────────────────────
-
 _BANDIT_MODES = {"bandit_plain", "bandit_regime", "adaptive"}
 
 
 def _select_node(augmented_prompt: str) -> int:
-    """Return target node id (0=GPU, 1=CPU). Called while holding _inflight_lock."""
     if ROUTING_MODE == "baseline":
         return 0
 
     if ROUTING_MODE == "least_in_flight":
-        # Prefer GPU on tie (node 0)
         return 0 if inflight[0] <= inflight[1] else 1
 
     if ROUTING_MODE == "static":
@@ -197,14 +144,9 @@ def _select_node(augmented_prompt: str) -> int:
     if ROUTING_MODE in _BANDIT_MODES:
         return bandit.select_arm()
 
-    # Unknown mode — default to GPU
     logger.warning(f"unknown routing mode '{ROUTING_MODE}', defaulting to GPU")
     return 0
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# ENDPOINTS
-# ─────────────────────────────────────────────────────────────────────────────
 
 @app.post("/query", response_model=QueryResponse)
 async def query(request: QueryRequest):
@@ -216,7 +158,6 @@ async def query(request: QueryRequest):
 
     logger.info(f"[q{qid}] {request.prompt[:60]}...")
 
-    # ── Stage 1: Retrieval ────────────────────────────────────────────────────
     retrieval_start = time.time()
     loop = asyncio.get_running_loop()
     context_docs = await loop.run_in_executor(
@@ -224,7 +165,6 @@ async def query(request: QueryRequest):
     )
     retrieval_time_ms = (time.time() - retrieval_start) * 1000
 
-    # Build augmented prompt
     if request.include_context and context_docs:
         context_str = "\n".join(f"- {doc}" for doc in context_docs)
         augmented_prompt = (
@@ -235,7 +175,6 @@ async def query(request: QueryRequest):
     else:
         augmented_prompt = request.prompt
 
-    # ── Stage 2: Route ────────────────────────────────────────────────────────
     async with _inflight_lock:
         node = _select_node(augmented_prompt)
         inflight[node] += 1
@@ -244,7 +183,6 @@ async def query(request: QueryRequest):
     node_name = _NODE_NAMES[node]
     logger.info(f"[q{qid}] routing to {node_name}")
 
-    # ── Stage 3: Generate ─────────────────────────────────────────────────────
     payload = {
         "model": MODEL_NAME,
         "prompt": augmented_prompt,
@@ -302,9 +240,6 @@ async def query(request: QueryRequest):
         generation_time_ms = (time.time() - generation_start) * 1000
         async with _inflight_lock:
             inflight[node] = max(0, inflight[node] - 1)
-        # Always update bandit — timeouts and errors are penalised with reward 0.
-        # unreachable=True triggers immediate arm block in adaptive mode (no
-        # need to wait for regime detection when the node is confirmed dead).
         if ROUTING_MODE in _BANDIT_MODES:
             bandit.update(
                 node, generation_time_ms,
@@ -312,7 +247,6 @@ async def query(request: QueryRequest):
                 unreachable=node_unreachable,
             )
 
-    # ── Record metrics and respond ────────────────────────────────────────────
     total_time_ms = (time.time() - total_start) * 1000
 
     if request_failed:
