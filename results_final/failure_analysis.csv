@@ -1,0 +1,7 @@
+Mode,Total,Failures,Failure Rate,Timeout (504)
+Baseline,4000,403,10.1%,403
+Least In-Flight,4000,788,19.7%,788
+Static ML,4000,773,19.3%,773
+Bandit (plain),4000,430,10.8%,430
+Bandit (regime),4000,500,12.5%,500
+Adaptive,4000,571,14.3%,571

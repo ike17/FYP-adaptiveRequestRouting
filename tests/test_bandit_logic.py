@@ -1,140 +1,181 @@
-import importlib.util
+import math
 import sys
-import types
+import time
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "smart-gateway"))
+
+from algorithms.bandit import CBState, ThompsonSamplingBandit
 
 
-def _install_kubernetes_stubs():
-    """Install minimal kubernetes module stubs for unit testing."""
-    if "kubernetes" in sys.modules:
-        return
-
-    kubernetes_mod = types.ModuleType("kubernetes")
-    client_mod = types.ModuleType("kubernetes.client")
-    config_mod = types.ModuleType("kubernetes.config")
-    watch_mod = types.ModuleType("kubernetes.watch")
-    rest_mod = types.ModuleType("kubernetes.client.rest")
-
-    class DummyApiException(Exception):
-        def __init__(self, status=None, reason=None):
-            super().__init__(f"ApiException(status={status}, reason={reason})")
-            self.status = status
-            self.reason = reason
-
-    class DummyConfigException(Exception):
-        pass
-
-    def _noop(*_args, **_kwargs):
-        return None
-
-    class DummyCoreV1Api:
-        pass
-
-    class DummyWatch:
-        def stream(self, *_args, **_kwargs):
-            return iter(())
-
-    client_mod.CoreV1Api = DummyCoreV1Api
-    client_mod.V1Binding = object
-    client_mod.V1ObjectMeta = object
-    client_mod.V1ObjectReference = object
-    config_mod.load_incluster_config = _noop
-    config_mod.load_kube_config = _noop
-    config_mod.ConfigException = DummyConfigException
-    watch_mod.Watch = DummyWatch
-    rest_mod.ApiException = DummyApiException
-
-    kubernetes_mod.client = client_mod
-    kubernetes_mod.config = config_mod
-    kubernetes_mod.watch = watch_mod
-
-    sys.modules["kubernetes"] = kubernetes_mod
-    sys.modules["kubernetes.client"] = client_mod
-    sys.modules["kubernetes.config"] = config_mod
-    sys.modules["kubernetes.watch"] = watch_mod
-    sys.modules["kubernetes.client.rest"] = rest_mod
+def _plain(window_size=5):
+    return ThompsonSamplingBandit(
+        target_latency_ms=5000,
+        window_size=window_size,
+        enable_regime_detection=False,
+        enable_cb=False,
+    )
 
 
-def _load_module(module_name: str, relative_path: str):
-    _install_kubernetes_stubs()
-    module_path = ROOT / relative_path
-    spec = importlib.util.spec_from_file_location(module_name, module_path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec and spec.loader
-    spec.loader.exec_module(module)
-    return module
+def _regime(window_size=5):
+    return ThompsonSamplingBandit(
+        target_latency_ms=5000,
+        window_size=window_size,
+        enable_regime_detection=True,
+        enable_cb=False,
+    )
 
 
-adaptive_module = _load_module(
-    "adaptive_bandit_scheduler_under_test",
-    "ml-schedulers/bandit/adaptive_bandit_scheduler.py",
-)
-bandit_module = _load_module(
-    "bandit_scheduler_under_test",
-    "ml-schedulers/bandit/bandit_scheduler.py",
-)
+def _adaptive(window_size=3, cb_open_duration_s=15.0, cb_half_open_duration_s=15.0):
+    return ThompsonSamplingBandit(
+        target_latency_ms=5000,
+        window_size=window_size,
+        enable_regime_detection=True,
+        enable_cb=True,
+        cb_open_duration_s=cb_open_duration_s,
+        cb_half_open_duration_s=cb_half_open_duration_s,
+    )
 
 
-class TestAdaptiveBanditCore(unittest.TestCase):
-    def test_establishes_baseline_after_full_window(self):
-        bandit = adaptive_module.ThompsonSamplingBandit(
-            n_arms=2,
-            window_size=3,
-            reset_threshold=0.5,
-        )
-        bandit.update(arm=0, reward=0.9)
-        bandit.update(arm=0, reward=0.9)
-        result = bandit.update(arm=0, reward=0.9)
+# ---------------------------------------------------------------------------
+# Reward function
+# ---------------------------------------------------------------------------
 
-        self.assertFalse(result["regime_change_detected"])
-        self.assertIsNotNone(bandit.baseline_reward)
-        self.assertAlmostEqual(bandit.baseline_reward, 0.9, places=3)
+class TestRewardFunction(unittest.TestCase):
+    def test_at_target_reward_is_one(self):
+        b = _plain()
+        self.assertAlmostEqual(b._compute_reward(5000), 1.0, places=3)
 
-    def test_detects_regime_change_without_inline_reset(self):
-        bandit = adaptive_module.ThompsonSamplingBandit(
-            n_arms=2,
-            window_size=3,
-            reset_threshold=0.5,
-        )
-        bandit.update(arm=1, reward=0.9)
-        bandit.update(arm=1, reward=0.9)
-        bandit.update(arm=1, reward=0.9)
+    def test_below_target_clamps_to_one(self):
+        b = _plain()
+        self.assertAlmostEqual(b._compute_reward(100), 1.0, places=3)
 
-        bandit.update(arm=1, reward=0.1)
-        result = bandit.update(arm=1, reward=0.1)
+    def test_double_target_decays_exponentially(self):
+        b = _plain()
+        # excess = 5000ms, target = 5000ms → exp(-1) ≈ 0.368
+        self.assertAlmostEqual(b._compute_reward(10000), math.exp(-1), places=3)
 
-        self.assertTrue(result["regime_change_detected"])
-        self.assertEqual(bandit.reset_count, 0)
-        self.assertIsNotNone(bandit.baseline_reward)
+    def test_extreme_latency_stays_above_zero(self):
+        b = _plain()
+        self.assertGreater(b._compute_reward(999_999), 0.0)
 
-    def test_latency_to_reward_clamps_to_closed_range(self):
-        metrics = adaptive_module.MetricsCollector("http://example")
-        self.assertEqual(metrics.latency_to_reward(0), 0.99)
-        self.assertEqual(metrics.latency_to_reward(100000), 0.01)
+    def test_timeout_gives_zero_reward(self):
+        b = _plain()
+        b.update(arm=0, latency_ms=5000, timed_out=True)
+        # alpha should not have grown beyond the initial 1.0 + 0.0 = 1.0
+        self.assertAlmostEqual(b._alpha[0], 1.0, places=6)
+
+    def test_good_latency_increments_alpha(self):
+        b = _plain()
+        b.update(arm=0, latency_ms=5000)
+        self.assertGreater(b._alpha[0], 1.0)
 
 
-class TestLegacyBanditCore(unittest.TestCase):
-    def test_regime_change_triggers_internal_reset(self):
-        bandit = bandit_module.ThompsonSamplingBandit(
-            n_arms=2,
-            window_size=3,
-            reset_threshold=0.5,
-        )
-        bandit.update(arm=0, reward=0.9)
-        bandit.update(arm=0, reward=0.9)
-        bandit.update(arm=0, reward=0.9)
+# ---------------------------------------------------------------------------
+# Regime detection (bandit_regime)
+# ---------------------------------------------------------------------------
 
-        bandit.update(arm=0, reward=0.1)
-        result = bandit.update(arm=0, reward=0.1)
+class TestRegimeDetection(unittest.TestCase):
+    def _feed_stable(self, b, n, arm=0, latency_ms=5000):
+        for _ in range(n):
+            b.update(arm=arm, latency_ms=latency_ms)
 
-        self.assertTrue(result["regime_change_detected"])
-        self.assertEqual(bandit.reset_count, 1)
-        self.assertIsNone(bandit.baseline_reward)
-        self.assertEqual(len(bandit.reward_window), 0)
+    def test_baseline_established_after_burn_in(self):
+        b = _regime(window_size=3)
+        self._feed_stable(b, 9)          # burn-in = window_size * 3
+        self.assertIsNotNone(b._baseline_reward)
+
+    def test_no_regime_change_on_stable_rewards(self):
+        b = _regime(window_size=3)
+        self._feed_stable(b, 20)
+        self.assertEqual(b._reset_count, 0)
+
+    def test_regime_change_increments_reset_count(self):
+        b = _regime(window_size=3)
+        self._feed_stable(b, 9)
+        # Degrade heavily — 5× target latency, well below 40% threshold
+        for _ in range(5):
+            b.update(arm=0, latency_ms=25000)
+        self.assertGreater(b._reset_count, 0)
+
+    def test_soft_reset_decays_but_preserves_posterior_direction(self):
+        b = _regime(window_size=3)
+        self._feed_stable(b, 20)
+        alpha_before = b._alpha[0]
+        for _ in range(5):
+            b.update(arm=0, latency_ms=25000)
+        if b._reset_count > 0:
+            # Posteriors should be decayed but not back to 1.0
+            self.assertGreater(b._alpha[0], 1.0)
+            self.assertLess(b._alpha[0], alpha_before)
+
+
+# ---------------------------------------------------------------------------
+# 3-state circuit breaker (adaptive)
+# ---------------------------------------------------------------------------
+
+class TestCircuitBreaker(unittest.TestCase):
+    def _trigger_reset(self, b, arm=0):
+        """Drive the bandit through burn-in then degrade to trigger soft reset + CB open."""
+        for _ in range(b.window_size * 3):
+            b.update(arm=arm, latency_ms=5000)
+        for _ in range(b.window_size + 2):
+            b.update(arm=arm, latency_ms=25000)
+
+    def test_cb_opens_worse_arm_after_regime_change(self):
+        b = _adaptive()
+        self._trigger_reset(b, arm=0)
+        self.assertEqual(b._cb_state[0], CBState.OPEN)
+
+    def test_cb_transitions_open_to_half_open_after_duration(self):
+        b = _adaptive()
+        b._cb_transition(0, CBState.OPEN)
+        # Backdate state start to simulate duration elapsed
+        b._cb_state_start[0] = time.time() - 20
+        b._cb_tick(0)
+        self.assertEqual(b._cb_state[0], CBState.HALF_OPEN)
+
+    def test_good_probes_in_half_open_close_circuit(self):
+        b = _adaptive()
+        b._cb_transition(0, CBState.HALF_OPEN)
+        # Feed enough good probes to trigger early close (mean ≥ 0.3, but need ≥3 bad ones for reopen)
+        # Manually append high rewards and then advance time past half_open_duration
+        b._cb_probe_results[0] = [0.9, 0.9, 0.9]
+        b._cb_state_start[0] = time.time() - (b._cb_half_open_duration_s + 1)
+        b._cb_tick(0)
+        self.assertEqual(b._cb_state[0], CBState.CLOSED)
+
+    def test_bad_probes_reopen_circuit_immediately(self):
+        b = _adaptive()
+        b._cb_transition(0, CBState.HALF_OPEN)
+        # 3 bad probes with mean < 0.1 → immediate reopen
+        for _ in range(3):
+            b._cb_record_probe(0, 0.02)
+        self.assertEqual(b._cb_state[0], CBState.OPEN)
+
+    def test_open_arm_excluded_from_selection(self):
+        b = _adaptive()
+        b._cb_transition(0, CBState.OPEN)
+        b._cb_state_start[0] = time.time() + 9999   # won't expire
+        for _ in range(30):
+            self.assertEqual(b.select_arm(), 1)
+
+    def test_deadlock_guard_returns_an_arm_when_all_blocked(self):
+        b = _adaptive()
+        future = time.time() + 9999
+        b._cb_transition(0, CBState.OPEN)
+        b._cb_state_start[0] = future
+        b._cb_transition(1, CBState.OPEN)
+        b._cb_state_start[1] = future
+        arm = b.select_arm()
+        self.assertIn(arm, (0, 1))
+
+    def test_unreachable_triggers_immediate_cb_open(self):
+        b = _adaptive()
+        b.update(arm=0, latency_ms=0, unreachable=True)
+        self.assertEqual(b._cb_state[0], CBState.OPEN)
 
 
 if __name__ == "__main__":

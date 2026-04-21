@@ -41,7 +41,7 @@ spec:
         node_type: cpu_standard
       containers:
         - name: gateway
-          image: smart-gateway:v5
+          image: smart-gateway:v1
           imagePullPolicy: Never
           ports:
             - containerPort: 8000
@@ -51,7 +51,7 @@ spec:
             - name: CPU_OLLAMA_URL
               value: "http://ollama-cpu-service:11434"
             - name: ROUTING_MODE
-              value: "bandit"
+              value: "bandit_plain"
             - name: MODEL_NAME
               value: "gemma:2b"
             - name: TARGET_LATENCY_MS
@@ -71,7 +71,7 @@ spec:
               cpu: "500m"
           readinessProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: 8000
             initialDelaySeconds: 15
             periodSeconds: 5
