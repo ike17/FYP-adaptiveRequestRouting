@@ -27,7 +27,10 @@ ml-training/dataset_stats.json
 ml-training/training_report.json
 
 # Model copied into gateway at build time (by scripts/build_all.sh)
-smart-gateway/model/
+# Keep the submission artifact tracked so a clean checkout can still run static mode.
+smart-gateway/model/*
+!smart-gateway/model/
+!smart-gateway/model/gateway_model.pkl
 
 # Environment / secrets
 .env
@@ -46,3 +49,5 @@ Thumbs.db
 .idea/
 *.swp
 *~
+
+issues/

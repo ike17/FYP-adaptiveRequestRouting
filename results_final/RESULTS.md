@@ -38,18 +38,23 @@
 | Static ML | 80.7% | 3,545 | 1,945 | 6,083 | 8,543 | 14,385 | 97% |
 | Least In-Flight | 80.3% | 4,754 | 2,070 | 8,362 | 10,692 | 12,474 | 96% |
 
+Latency values in this table are computed over successful requests only. For a failure-aware
+summary, use `Eff. lat (ms)` in `aggregated_comparison_table.csv`.
+
 ---
 
 ## Key Statistical Findings
 
-| Comparison | Phase | p-value (MWU) | Cohen's d | Interpretation |
+| Comparison | Phase | MWU p-value | Cohen's d | Interpretation |
 |------------|-------|--------------|-----------|----------------|
 | Baseline vs Bandit (plain) | Full | p = 0.098 | d = −0.019 (negligible) | TS matches GPU oracle with zero configuration |
 | Bandit (plain) vs Adaptive | Overload | p < 0.001 | d = 0.604 (medium) | Adaptive 17.4% lower overload latency |
 | Bandit (regime) vs Adaptive | Full | p = 0.151 | d = 0.063 (negligible) | CB adds negligible improvement over regime detection alone |
 | Baseline vs Static ML | Full | p < 0.001 | d = 0.655 (medium) | Static 47% lower mean latency but −9.2pp success rate |
 
-All p-values Bonferroni-corrected for 6 pairwise comparisons.
+These table values are the raw Mann-Whitney U p-values pulled from
+`aggregated_statistical_tests.json`. Bonferroni-corrected values are also included there.
+With 6 routing modes, the familywise correction spans 15 pairwise comparisons.
 
 ---
 
@@ -57,7 +62,11 @@ All p-values Bonferroni-corrected for 6 pairwise comparisons.
 
 **bandit_plain is the success-rate champion.** Thompson Sampling alone matches the always-GPU oracle (p = 0.098, negligible effect size), requiring no prior knowledge of node capabilities. It outperforms the trained static classifier by 8.5 percentage points in success rate.
 
-**adaptive wins on overload latency.** During the high-load phase (λ=12), the 3-state circuit breaker detects GPU degradation and redirects traffic, reducing mean overload latency by 17.4% vs bandit_plain (10.9 s vs 13.1 s, medium effect). The cost is −3.5pp success rate, reflecting occasional misroutes to the CPU node under sustained flood.
+**adaptive wins on overload latency.** During the high-load phase (the second half of each
+400-query run, pooled across runs), the 3-state circuit breaker detects GPU degradation and
+redirects traffic, reducing mean overload latency by 17.4% vs bandit_plain (10.9 s vs 13.1 s,
+medium effect). The cost is −3.5pp success rate, reflecting occasional misroutes to the CPU
+node under sustained flood.
 
 **Static ML and Least-In-Flight are negative results.** Both blindly route ~3–4% of requests to the CPU node during overload. At λ=12 the CPU queue saturates (throughput ≈ 1 req/15 s), turning each CPU-routed request into a timeout. This produces −9pp success rate vs baseline despite lower mean latency (fewer slow GPU requests means the mean is pulled down by the timeouts being excluded as failures).
 

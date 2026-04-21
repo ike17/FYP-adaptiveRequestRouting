@@ -18,8 +18,8 @@
 #                        (only required for static mode)
 #
 # Presets (override via env vars):
-#   Default:  QUERIES=100 RATE=1.0 RAMP_RATE=4.0 CONCURRENCY=16 GENERATION_TIMEOUT=30
-#   Stress:   QUERIES=400 RAMP_RATE=12.0 CONCURRENCY=32 GENERATION_TIMEOUT=10
+#   Default:  QUERIES=100 RATE=1.0 RAMP_RATE=4.0 CONCURRENCY=16 GENERATION_TIMEOUT=15
+#   Stress:   QUERIES=400 RAMP_RATE=12.0 CONCURRENCY=32 GENERATION_TIMEOUT=15
 
 set -euo pipefail
 

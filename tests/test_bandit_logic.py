@@ -106,10 +106,10 @@ class TestRegimeDetection(unittest.TestCase):
         alpha_before = b._alpha[0]
         for _ in range(5):
             b.update(arm=0, latency_ms=25000)
-        if b._reset_count > 0:
-            # Posteriors should be decayed but not back to 1.0
-            self.assertGreater(b._alpha[0], 1.0)
-            self.assertLess(b._alpha[0], alpha_before)
+        self.assertGreater(b._reset_count, 0)
+        # Posteriors should be decayed but not back to 1.0
+        self.assertGreater(b._alpha[0], 1.0)
+        self.assertLess(b._alpha[0], alpha_before)
 
 
 # ---------------------------------------------------------------------------
@@ -155,6 +155,13 @@ class TestCircuitBreaker(unittest.TestCase):
             b._cb_record_probe(0, 0.02)
         self.assertEqual(b._cb_state[0], CBState.OPEN)
 
+    def test_half_open_without_probes_reopens_cleanly(self):
+        b = _adaptive()
+        b._cb_transition(0, CBState.HALF_OPEN)
+        b._cb_state_start[0] = time.time() - (b._cb_half_open_duration_s + 1)
+        b._cb_tick(0)
+        self.assertEqual(b._cb_state[0], CBState.OPEN)
+
     def test_open_arm_excluded_from_selection(self):
         b = _adaptive()
         b._cb_transition(0, CBState.OPEN)
@@ -176,6 +183,24 @@ class TestCircuitBreaker(unittest.TestCase):
         b = _adaptive()
         b.update(arm=0, latency_ms=0, unreachable=True)
         self.assertEqual(b._cb_state[0], CBState.OPEN)
+
+
+# ---------------------------------------------------------------------------
+# Convergence
+# ---------------------------------------------------------------------------
+
+class TestConvergence(unittest.TestCase):
+    def test_select_arm_converges_on_dominant_arm(self):
+        """After clear signal separation, arm 0 should be chosen ≥95% of the time."""
+        b = _plain()
+        target = b.target_latency_ms  # 5000 ms
+        for _ in range(50):
+            b.update(arm=0, latency_ms=target)          # reward ≈ 1.0
+        for _ in range(50):
+            b.update(arm=1, latency_ms=target * 10)     # reward ≈ exp(-9) ≈ 0.0001
+        selections = [b.select_arm() for _ in range(200)]
+        arm0_count = selections.count(0)
+        self.assertGreaterEqual(arm0_count, 190)
 
 
 if __name__ == "__main__":

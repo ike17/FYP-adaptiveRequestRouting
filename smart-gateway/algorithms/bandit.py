@@ -124,9 +124,13 @@ class ThompsonSamplingBandit:
 
         elif state == CBState.HALF_OPEN:
             if elapsed >= self._cb_half_open_duration_s:
-                # Graduation complete — check if probes were healthy
+                # Graduation complete — check if probes were healthy.
+                # If no probes were recorded (zero traffic), we cautiously CLOSE
+                # to allow rediscovery, rather than re-blocking the arm.
                 probes = self._cb_probe_results[arm]
-                if probes and np.mean(probes) >= 0.3:
+                if not probes:
+                    self._cb_transition(arm, CBState.CLOSED)
+                elif np.mean(probes) >= 0.3:
                     self._cb_transition(arm, CBState.CLOSED)
                 else:
                     # Probes failed — reopen
