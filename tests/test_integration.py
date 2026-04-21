@@ -23,7 +23,6 @@ QUERY_PAYLOAD = {
 
 
 def _mock_ollama_response():
-    """Canned httpx.Response shaped like Ollama /api/generate output."""
     mock = MagicMock(spec=httpx.Response)
     mock.raise_for_status.return_value = None
     mock.json.return_value = {
@@ -35,27 +34,13 @@ def _mock_ollama_response():
 
 
 def _make_mock_http_client():
-    """Return a MagicMock shaped like httpx.AsyncClient with an async .post."""
     mock_client = MagicMock(spec=httpx.AsyncClient)
     mock_client.post = AsyncMock(return_value=_mock_ollama_response())
     return mock_client
 
 
-# ---------------------------------------------------------------------------
-# Session-scoped fixture to initialise shared singletons once per test run.
-#
-# ASGITransport does NOT trigger the FastAPI lifespan, so vector_db, bandit,
-# and http_client remain None after import.  We bootstrap them here so the
-# application code can run without a live server.
-#
-# VectorDB is expensive (loads embeddings) and ChromaDB's default in-memory
-# client will raise UniqueConstraintError if create_collection is called twice
-# in the same process, so we create it exactly once at session scope.
-# ---------------------------------------------------------------------------
-
 @pytest.fixture(scope="session", autouse=True)
 def _init_shared_singletons():
-    """Create vector_db and bandit once for the entire test session."""
     from algorithms.bandit import ThompsonSamplingBandit
     from vectordb import VectorDB
 
@@ -69,18 +54,12 @@ def _init_shared_singletons():
         enable_cb=False,
     )
     yield
-    # No teardown needed — in-memory store is discarded with the process.
 
 
 @pytest.fixture(autouse=True)
 def _mock_http_client(monkeypatch):
-    """Give every test a fresh mock http_client so tests don't bleed state."""
     monkeypatch.setattr(main, "http_client", _make_mock_http_client())
 
-
-# ---------------------------------------------------------------------------
-# Routing mode parametrization — one /query test per mode
-# ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mode", [
@@ -109,10 +88,6 @@ async def test_query_all_routing_modes(mode, monkeypatch):
     assert data["routed_to"] in ("gpu", "cpu")
     assert data["total_time_ms"] > 0
 
-
-# ---------------------------------------------------------------------------
-# Endpoint smoke tests (run once under baseline mode)
-# ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 async def test_health_endpoint(monkeypatch):
@@ -160,10 +135,6 @@ async def test_root_endpoint(monkeypatch):
     assert "routing_mode" in resp.json()
 
 
-# ---------------------------------------------------------------------------
-# Error path tests
-# ---------------------------------------------------------------------------
-
 @pytest.mark.asyncio
 async def test_timeout_returns_504(monkeypatch):
     monkeypatch.setattr(main, "ROUTING_MODE", "baseline")
@@ -189,10 +160,6 @@ async def test_connect_error_returns_503(monkeypatch):
         resp = await client.post("/query", json=QUERY_PAYLOAD)
     assert resp.status_code == 503
 
-
-# ---------------------------------------------------------------------------
-# Metrics reset test
-# ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 async def test_delete_metrics_resets_query_counter(monkeypatch):

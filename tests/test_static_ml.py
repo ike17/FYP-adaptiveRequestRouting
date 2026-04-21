@@ -20,7 +20,7 @@ class TestStaticMLRouter(unittest.TestCase):
         self.assertIn(result, (0, 1))
 
     def test_long_prompt_high_gpu_inflight_returns_valid_node(self):
-        prompt = "What is Kubernetes scheduling? " * 20  # ~100 words
+        prompt = "What is Kubernetes scheduling? " * 20
         result = self.router.predict(prompt, 10, 0)
         self.assertIn(result, (0, 1))
 

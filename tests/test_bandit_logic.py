@@ -39,10 +39,6 @@ def _adaptive(window_size=3, cb_open_duration_s=15.0, cb_half_open_duration_s=15
     )
 
 
-# ---------------------------------------------------------------------------
-# Reward function
-# ---------------------------------------------------------------------------
-
 class TestRewardFunction(unittest.TestCase):
     def test_at_target_reward_is_one(self):
         b = _plain()
@@ -54,7 +50,6 @@ class TestRewardFunction(unittest.TestCase):
 
     def test_double_target_decays_exponentially(self):
         b = _plain()
-        # excess = 5000ms, target = 5000ms → exp(-1) ≈ 0.368
         self.assertAlmostEqual(b._compute_reward(10000), math.exp(-1), places=3)
 
     def test_extreme_latency_stays_above_zero(self):
@@ -64,7 +59,6 @@ class TestRewardFunction(unittest.TestCase):
     def test_timeout_gives_zero_reward(self):
         b = _plain()
         b.update(arm=0, latency_ms=5000, timed_out=True)
-        # alpha should not have grown beyond the initial 1.0 + 0.0 = 1.0
         self.assertAlmostEqual(b._alpha[0], 1.0, places=6)
 
     def test_good_latency_increments_alpha(self):
@@ -73,10 +67,6 @@ class TestRewardFunction(unittest.TestCase):
         self.assertGreater(b._alpha[0], 1.0)
 
 
-# ---------------------------------------------------------------------------
-# Regime detection (bandit_regime)
-# ---------------------------------------------------------------------------
-
 class TestRegimeDetection(unittest.TestCase):
     def _feed_stable(self, b, n, arm=0, latency_ms=5000):
         for _ in range(n):
@@ -84,7 +74,7 @@ class TestRegimeDetection(unittest.TestCase):
 
     def test_baseline_established_after_burn_in(self):
         b = _regime(window_size=3)
-        self._feed_stable(b, 9)          # burn-in = window_size * 3
+        self._feed_stable(b, 9)
         self.assertIsNotNone(b._baseline_reward)
 
     def test_no_regime_change_on_stable_rewards(self):
@@ -95,7 +85,6 @@ class TestRegimeDetection(unittest.TestCase):
     def test_regime_change_increments_reset_count(self):
         b = _regime(window_size=3)
         self._feed_stable(b, 9)
-        # Degrade heavily — 5× target latency, well below 40% threshold
         for _ in range(5):
             b.update(arm=0, latency_ms=25000)
         self.assertGreater(b._reset_count, 0)
@@ -107,18 +96,12 @@ class TestRegimeDetection(unittest.TestCase):
         for _ in range(5):
             b.update(arm=0, latency_ms=25000)
         self.assertGreater(b._reset_count, 0)
-        # Posteriors should be decayed but not back to 1.0
         self.assertGreater(b._alpha[0], 1.0)
         self.assertLess(b._alpha[0], alpha_before)
 
 
-# ---------------------------------------------------------------------------
-# 3-state circuit breaker (adaptive)
-# ---------------------------------------------------------------------------
-
 class TestCircuitBreaker(unittest.TestCase):
     def _trigger_reset(self, b, arm=0):
-        """Drive the bandit through burn-in then degrade to trigger soft reset + CB open."""
         for _ in range(b.window_size * 3):
             b.update(arm=arm, latency_ms=5000)
         for _ in range(b.window_size + 2):
@@ -132,7 +115,6 @@ class TestCircuitBreaker(unittest.TestCase):
     def test_cb_transitions_open_to_half_open_after_duration(self):
         b = _adaptive()
         b._cb_transition(0, CBState.OPEN)
-        # Backdate state start to simulate duration elapsed
         b._cb_state_start[0] = time.time() - 20
         b._cb_tick(0)
         self.assertEqual(b._cb_state[0], CBState.HALF_OPEN)
@@ -140,8 +122,6 @@ class TestCircuitBreaker(unittest.TestCase):
     def test_good_probes_in_half_open_close_circuit(self):
         b = _adaptive()
         b._cb_transition(0, CBState.HALF_OPEN)
-        # Feed enough good probes to trigger early close (mean ≥ 0.3, but need ≥3 bad ones for reopen)
-        # Manually append high rewards and then advance time past half_open_duration
         b._cb_probe_results[0] = [0.9, 0.9, 0.9]
         b._cb_state_start[0] = time.time() - (b._cb_half_open_duration_s + 1)
         b._cb_tick(0)
@@ -150,7 +130,6 @@ class TestCircuitBreaker(unittest.TestCase):
     def test_bad_probes_reopen_circuit_immediately(self):
         b = _adaptive()
         b._cb_transition(0, CBState.HALF_OPEN)
-        # 3 bad probes with mean < 0.1 → immediate reopen
         for _ in range(3):
             b._cb_record_probe(0, 0.02)
         self.assertEqual(b._cb_state[0], CBState.OPEN)
@@ -165,7 +144,7 @@ class TestCircuitBreaker(unittest.TestCase):
     def test_open_arm_excluded_from_selection(self):
         b = _adaptive()
         b._cb_transition(0, CBState.OPEN)
-        b._cb_state_start[0] = time.time() + 9999   # won't expire
+        b._cb_state_start[0] = time.time() + 9999
         for _ in range(30):
             self.assertEqual(b.select_arm(), 1)
 
@@ -185,19 +164,14 @@ class TestCircuitBreaker(unittest.TestCase):
         self.assertEqual(b._cb_state[0], CBState.OPEN)
 
 
-# ---------------------------------------------------------------------------
-# Convergence
-# ---------------------------------------------------------------------------
-
 class TestConvergence(unittest.TestCase):
     def test_select_arm_converges_on_dominant_arm(self):
-        """After clear signal separation, arm 0 should be chosen ≥95% of the time."""
         b = _plain()
-        target = b.target_latency_ms  # 5000 ms
+        target = b.target_latency_ms
         for _ in range(50):
-            b.update(arm=0, latency_ms=target)          # reward ≈ 1.0
+            b.update(arm=0, latency_ms=target)
         for _ in range(50):
-            b.update(arm=1, latency_ms=target * 10)     # reward ≈ exp(-9) ≈ 0.0001
+            b.update(arm=1, latency_ms=target * 10)
         selections = [b.select_arm() for _ in range(200)]
         arm0_count = selections.count(0)
         self.assertGreaterEqual(arm0_count, 190)

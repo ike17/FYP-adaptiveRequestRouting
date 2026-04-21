@@ -15,7 +15,6 @@ class TestCohensD(unittest.TestCase):
         rng = np.random.default_rng(42)
         a = rng.normal(loc=1.0, scale=1.0, size=100).tolist()
         b = rng.normal(loc=3.0, scale=1.0, size=100).tolist()
-        # Expected d ≈ -2.0 (mean difference / pooled std ≈ (1-3)/1)
         d = ar.cohens_d(a, b)
         self.assertAlmostEqual(d, -2.307, delta=0.05)
 
@@ -44,12 +43,11 @@ class TestRunComparison(unittest.TestCase):
 
 class TestGetLatencies(unittest.TestCase):
     def setUp(self):
-        # 10 successful records with query_number 1–10
         self.data = [
             {"success": True, "query_number": i, "total_time_ms": float(i * 100)}
             for i in range(1, 11)
         ]
-        ar.OVERLOAD_QUERY = 6  # queries 1–5 are pre, 6–10 are post
+        ar.OVERLOAD_QUERY = 6
 
     def test_phase_pre_returns_correct_records(self):
         pre = ar.get_latencies(self.data, "pre")
