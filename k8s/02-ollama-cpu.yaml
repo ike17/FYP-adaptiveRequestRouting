@@ -1,8 +1,3 @@
-# k8s/02-ollama-cpu.yaml
-# Ollama deployment pinned to the CPU node (Proxmox) via nodeSelector.
-# Runs gemma:2b in CPU-only mode — slower baseline, but useful when the GPU is
-# saturated or under shock. The smart-gateway routes to this pod as arm 1 (cpu).
-
 ---
 apiVersion: v1
 kind: Service

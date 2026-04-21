@@ -1,26 +1,4 @@
 #!/bin/bash
-# run_all.sh — L7 Smart Gateway experiment suite
-#
-# Runs six experiments back-to-back (baseline, least_in_flight, static,
-# bandit_plain, bandit_regime, adaptive) against the same pair of Ollama pods.
-# Between experiments the gateway's ROUTING_MODE is changed via `kubectl set env`
-# + rollout restart so each experiment starts with a fresh pod and clean
-# in-memory state (bandit posteriors, queue counters, etc.)
-#
-# The first half of each experiment runs at RATE (normal phase). At the midpoint
-# the arrival rate jumps to RAMP_RATE to ensure sustained overload long enough
-# to expose routing-policy differences under contention.
-#
-# Prerequisites:
-#   1. Cluster running:  ./scripts/setup_cluster.sh
-#   2. Images built:     ./scripts/build_all.sh
-#   3. Model trained:    cd ml-training && python generate_dataset.py && python train_model.py
-#                        (only required for static mode)
-#
-# Presets (override via env vars):
-#   Default:  QUERIES=100 RATE=1.0 RAMP_RATE=4.0 CONCURRENCY=16 GENERATION_TIMEOUT=15
-#   Stress:   QUERIES=400 RAMP_RATE=12.0 CONCURRENCY=32 GENERATION_TIMEOUT=15
-
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,8 +13,6 @@ GATEWAY_URL="${GATEWAY_URL:-http://localhost:32367}"
 mkdir -p "$RESULTS_DIR"
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
-
-# ─── Wait helpers ────────────────────────────────────────────────────────────
 
 wait_for_pods() {
     local label="$1" max=300 waited=0
@@ -58,8 +34,6 @@ wait_for_pods() {
 }
 
 wait_for_model() {
-    # The postStart lifecycle hook pulls the model asynchronously — the pod can
-    # be "Running" before `ollama list` shows gemma:2b. Poll until it appears.
     local pod_label="$1" max=300 interval=10 waited=0
     log "waiting for gemma:2b to load on $pod_label (up to ${max}s)..."
     while [ $waited -lt $max ]; do
@@ -75,14 +49,7 @@ wait_for_model() {
     return 0
 }
 
-# ─── Gateway readiness ──────────────────────────────────────────────────────
-
 wait_for_gateway_ready() {
-    # Poll the gateway /ready endpoint (which pings both ollama nodes).
-    # Returns:
-    #   0 — gateway ready, both ollama nodes reachable
-    #   1 — gateway up but ollama unreachable (likely pod eviction)
-    #   2 — gateway itself unreachable (transient, e.g. pod still starting)
     local max=120 waited=0
     log "checking gateway readiness at $GATEWAY_URL/ready..."
     while [ $waited -lt $max ]; do
@@ -91,11 +58,9 @@ wait_for_gateway_ready() {
         if [ "$code" = "200" ]; then
             log "  gateway ready"; return 0
         elif [ "$code" = "503" ]; then
-            # Gateway is up but one or both ollama nodes unreachable
             log "  gateway reports nodes not ready (503)"
             return 1
         fi
-        # 000 = connection refused (gateway pod not up yet), keep waiting
         sleep 10; waited=$((waited + 10))
         log "  waiting for gateway... (${waited}s/${max}s, last HTTP $code)"
     done
@@ -109,14 +74,12 @@ handle_gateway_readiness() {
     if [ $rc -eq 0 ]; then return 0; fi
 
     if [ $rc -eq 1 ]; then
-        # Ollama node likely evicted (e.g. DiskPressure on CPU node)
         log "  attempting recovery: restarting ollama-cpu..."
         kubectl rollout restart deployment/ollama-cpu
         kubectl rollout status deployment/ollama-cpu --timeout=120s || true
         wait_for_pods "app=ollama-cpu"
         wait_for_model "app=ollama-cpu"
 
-        # Recheck once
         wait_for_gateway_ready
         local rc2=$?
         if [ $rc2 -eq 0 ]; then
@@ -127,7 +90,6 @@ handle_gateway_readiness() {
     fi
 
     if [ $rc -eq 2 ]; then
-        # Transient — gateway pod still coming up, give it one more shot
         log "  gateway unreachable, retrying after 10s..."
         sleep 10
         wait_for_gateway_ready
@@ -137,8 +99,6 @@ handle_gateway_readiness() {
         return 1
     fi
 }
-
-# ─── Per-experiment logic ────────────────────────────────────────────────────
 
 switch_mode() {
     local mode="$1"
@@ -159,11 +119,6 @@ switch_mode() {
 }
 
 warm_gpu_vram() {
-    # ollama list confirms the model file exists, but VRAM loading is lazy — it
-    # only happens on the first inference request.  Run a short generation directly
-    # in the pod (bypassing the gateway's timeout) and block until it succeeds.
-    # This guarantees VRAM is hot before the benchmark starts, preventing a cold-GPU
-    # 504 from poisoning the bandit's initial prior.
     local max_attempts=6 attempt=0 interval=15
     local pod
     pod=$(kubectl get pod -l "app=ollama-gpu" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
@@ -181,9 +136,6 @@ warm_gpu_vram() {
 }
 
 warm_cpu_ram() {
-    # The CPU node loads model weights into RAM on first inference. Without this
-    # warmup, the first CPU-routed request pays a ~10-20s cold-load penalty that
-    # unfairly penalises routing modes that use the CPU early.
     local max_attempts=4 attempt=0 interval=15
     local pod
     pod=$(kubectl get pod -l "app=ollama-cpu" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
@@ -202,12 +154,10 @@ warm_cpu_ram() {
 
 run_experiment() {
     local mode="$1"
-    log "=== EXPERIMENT: $mode ==="
+    log "Experiment: $mode"
 
     switch_mode "$mode"
 
-    # PortForwardManager inside run_experiments.py owns the tunnel and auto-restarts
-    # it if pod churn kills the connection mid-experiment.
     python3 "$PROJECT_ROOT/benchmarks/run_experiments.py" \
         --config "$mode" \
         --queries "$QUERIES" \
@@ -220,8 +170,6 @@ run_experiment() {
     log "  experiment $mode DONE"
 }
 
-# ─── Main ────────────────────────────────────────────────────────────────────
-
 log "Results directory: $RESULTS_DIR"
 log "Config: Q=$QUERIES rate=$RATE ramp=$RAMP_RATE conc=$CONCURRENCY timeout=${GENERATION_TIMEOUT}s"
 
@@ -232,7 +180,6 @@ kubectl apply -f "$PROJECT_ROOT/k8s/03-gateway-app.yaml"
 
 MODES=(baseline least_in_flight static bandit_plain bandit_regime adaptive)
 
-# Shuffle to avoid systematic ordering effects (e.g. thermal throttling)
 MODES=($(printf '%s\n' "${MODES[@]}" | shuf))
 log "Experiment order: ${MODES[*]}"
 
@@ -242,11 +189,11 @@ for mode in "${MODES[@]}"; do
     sleep 30
 done
 
-log "=== ALL EXPERIMENTS DONE ==="
+log "All experiments done"
 python3 "$PROJECT_ROOT/benchmarks/analyze_results.py" \
     --input "$RESULTS_DIR" \
     --output "$RESULTS_DIR/analysis"
 
-log "=== COMPLETE ==="
+log "Complete"
 log "Results: $RESULTS_DIR"
 log "Charts:  $RESULTS_DIR/analysis/"

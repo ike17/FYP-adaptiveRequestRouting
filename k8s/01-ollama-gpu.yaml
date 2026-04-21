@@ -1,8 +1,3 @@
-# k8s/01-ollama-gpu.yaml
-# Ollama deployment pinned to the GPU node (laptop) via nodeSelector.
-# This pod runs gemma:2b with NVIDIA GPU acceleration.
-# The smart-gateway forwards generation requests here when it selects arm 0 (gpu).
-
 ---
 apiVersion: v1
 kind: Service

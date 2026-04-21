@@ -1,8 +1,3 @@
-# k8s/03-gateway-app.yaml
-# Smart gateway — exactly 1 replica so in-memory queue counters are accurate
-# across all concurrent requests. ROUTING_MODE defaults to "bandit_plain";
-# run_all.sh overrides it per experiment via `kubectl set env`.
-
 ---
 apiVersion: v1
 kind: Service
