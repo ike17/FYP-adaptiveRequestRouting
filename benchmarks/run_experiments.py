@@ -1,28 +1,4 @@
 #!/usr/bin/env python3
-"""
-benchmarks/run_experiments.py
-
-Automated experiment runner for the L7 Smart Gateway evaluation.
-Queries are dispatched concurrently with Poisson inter-arrival times to
-simulate realistic multi-user traffic.
-
-At the midpoint (n_queries // 2), the arrival rate ramps up to ensure
-sustained overload long enough to expose routing-policy differences
-under contention.
-
-Usage:
-    python run_experiments.py --config bandit --queries 100 --output results/
-
-    # Custom ramp rate:
-    python run_experiments.py --config bandit --rate 1.0 --ramp-rate 4.0
-
-    # No ramp (constant rate throughout):
-    python run_experiments.py --config bandit --rate 2.0 --no-ramp
-
-    # Direct URL (gateway already port-forwarded externally):
-    python run_experiments.py --config static --url http://localhost:8080
-"""
-
 import argparse
 import asyncio
 import atexit
@@ -37,15 +13,11 @@ import httpx
 import numpy as np
 from tqdm import tqdm
 
-# =============================================================================
-# CONFIGURATION
-# =============================================================================
-
 DEFAULT_QUERIES     = 100
-DEFAULT_RATE        = 1.0   # mean queries per second (Poisson arrivals) — normal phase
-DEFAULT_RAMP_RATE   = 4.0   # arrival rate after overload ramp
-DEFAULT_CONCURRENCY = 8     # max in-flight requests at once
-DEFAULT_TIMEOUT     = 180   # seconds per query
+DEFAULT_RATE        = 1.0
+DEFAULT_RAMP_RATE   = 4.0
+DEFAULT_CONCURRENCY = 8
+DEFAULT_TIMEOUT     = 180
 PORT_FORWARD_LOCAL_PORT = 8080
 
 _PROMPTS_FILE = Path(__file__).parent / "prompts.json"
@@ -57,7 +29,6 @@ def load_prompts() -> list[str]:
             prompts = json.load(f)
         if prompts:
             return prompts
-    # Fallback if prompts.json is missing
     return [
         "What is Kubernetes and how does it work?",
         "Explain Thompson Sampling for multi-armed bandits.",
@@ -67,17 +38,7 @@ def load_prompts() -> list[str]:
     ]
 
 
-# =============================================================================
-# PORT-FORWARD MANAGER
-# =============================================================================
-
 class PortForwardManager:
-    """
-    Manages kubectl port-forward lifecycle.
-    On Windows/WSL2, port-forward silently dies after ~5-10 minutes.
-    This class detects the dead process and restarts it automatically.
-    """
-
     def __init__(
         self,
         service: str = "svc/smart-gateway-service",
@@ -140,10 +101,6 @@ def get_gateway_url() -> str:
     return f"http://localhost:{PORT_FORWARD_LOCAL_PORT}"
 
 
-# =============================================================================
-# ASYNC HELPERS
-# =============================================================================
-
 async def wait_for_service(url: str, timeout: int = 300) -> bool:
     print(f"Waiting for gateway at {url}...")
     start = time.time()
@@ -179,12 +136,6 @@ _WARMUP_PROMPTS = [
 ]
 
 async def warmup(url: str):
-    """
-    Send a few queries before the timed run to move model weights into VRAM,
-    initialise CUDA graphs, and prime the ChromaDB query path.
-    Results are discarded; metrics are cleared afterwards so warmup latency
-    does not pollute the experiment stats.
-    """
     print(f"[warmup] sending {N_WARMUP} warmup queries (results discarded)...")
     async with httpx.AsyncClient() as client:
         for i, prompt in enumerate(_WARMUP_PROMPTS[:N_WARMUP]):
@@ -209,7 +160,6 @@ async def send_query(
     max_retries: int = 3,
     pf_manager: PortForwardManager = None,
 ) -> dict:
-    """Send a single query to the gateway with retry on connection errors."""
     loop = asyncio.get_running_loop()
 
     for attempt in range(max_retries):
@@ -290,10 +240,6 @@ async def send_query(
             }
 
 
-# =============================================================================
-# EXPERIMENT RUNNER
-# =============================================================================
-
 async def run_experiment(
     url: str,
     n_queries: int,
@@ -304,20 +250,15 @@ async def run_experiment(
     concurrency: int = DEFAULT_CONCURRENCY,
     pf_manager: PortForwardManager = None,
 ) -> dict:
-    """
-    Dispatch n_queries as a Poisson process (mean rate req/s, capped at concurrency).
-    At the midpoint (n_queries // 2) the arrival rate ramps up to ramp_rate to
-    ensure sustained overload long enough to expose routing-policy differences.
-    """
     prompts = load_prompts()
 
-    overload_index = n_queries // 2  # 0-based dispatch index
+    overload_index = n_queries // 2
     ramp_desc = f"Rate ramp {rate:.1f} → {ramp_rate:.1f} req/s at Q{overload_index+1}" if ramp_rate else "No ramp"
-    print(f"\n{'='*60}")
-    print(f"EXPERIMENT: {config_name}")
+    print()
+    print(f"Experiment: {config_name}")
     print(f"Queries: {n_queries} | Rate: {rate:.1f} req/s | Concurrency: {concurrency}")
     print(f"{ramp_desc}")
-    print(f"{'='*60}\n")
+    print()
 
     sem = asyncio.Semaphore(concurrency)
     results_list: list = [None] * n_queries
@@ -340,12 +281,10 @@ async def run_experiment(
             tasks.append(task)
             pbar.update(1)
 
-            # Rate ramp at the dynamic midpoint
             if i == overload_index and ramp_rate is not None:
                 print(f"\n[!] RATE RAMP: {rate:.1f} → {ramp_rate:.1f} req/s (query {i+1})")
                 rate = ramp_rate
 
-            # Poisson inter-arrival: Exp(mean = 1/rate) seconds between dispatches
             if i < n_queries - 1:
                 inter_arrival = np.random.exponential(1.0 / rate)
                 await asyncio.sleep(inter_arrival)
@@ -364,7 +303,7 @@ async def run_experiment(
         stats = {
             "config": config_name,
             "total_queries": n_queries,
-            "overload_query": overload_index + 1,  # 1-based query number
+            "overload_query": overload_index + 1,
             "successful_queries": success_count,
             "success_rate": success_count / n_queries,
             "mean_latency_ms": float(np.mean(latencies)),
@@ -401,9 +340,8 @@ async def run_experiment(
         json.dump(stats, f, indent=2)
     print(f"[OK] Summary: {summary_file}")
 
-    print(f"\n{'='*60}")
-    print("EXPERIMENT SUMMARY")
-    print(f"{'='*60}")
+    print()
+    print("Experiment summary")
     print(f"Config:       {config_name}")
     print(f"Success rate: {stats.get('success_rate', 0)*100:.1f}%")
     if stats.get("mean_latency_ms"):
@@ -413,14 +351,10 @@ async def run_experiment(
         print(f"P99 latency:  {stats['p99_latency_ms']:.2f}ms")
     if stats.get("mean_tokens_per_sec"):
         print(f"Mean tok/s:   {stats['mean_tokens_per_sec']:.2f}")
-    print(f"{'='*60}\n")
+    print()
 
     return stats
 
-
-# =============================================================================
-# ENTRY POINT
-# =============================================================================
 
 async def async_main():
     parser = argparse.ArgumentParser(

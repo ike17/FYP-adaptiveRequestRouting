@@ -1,19 +1,4 @@
 #!/usr/bin/env python3
-"""
-ml-training/train_model.py
-
-Train a Random Forest classifier on the gateway routing dataset.
-
-Features: prompt_length, gpu_in_flight, cpu_in_flight
-Label:    optimal_node  (0=GPU, 1=CPU)
-
-Outputs:
-    gateway_model.pkl       — trained model for the smart-gateway to load
-    training_report.json    — metrics and feature importance
-    feature_importance.png  — bar chart
-    confusion_matrix.png    — heatmap
-"""
-
 import json
 import warnings
 from pathlib import Path
@@ -99,9 +84,7 @@ def plot_confusion_matrix(cm: np.ndarray, output_path: Path):
 
 
 def main():
-    print("=" * 60)
-    print("GATEWAY STATIC ROUTER — MODEL TRAINING")
-    print("=" * 60)
+    print("Gateway static router model training")
 
     data_path = OUTPUT_DIR / "training_data.csv"
     if not data_path.exists():
@@ -141,7 +124,6 @@ def main():
         bar = "█" * int(imp * 40)
         print(f"  {feat:20} {imp:.4f}  {bar}")
 
-    # ── Save artifacts ─────────────────────────────────────────────────────────
     model_path = OUTPUT_DIR / "gateway_model.pkl"
     joblib.dump(model, model_path)
     print(f"\nsaved: {model_path.name}")
@@ -167,12 +149,10 @@ def main():
     plot_feature_importance(model, OUTPUT_DIR / "feature_importance.png")
     plot_confusion_matrix(cm, OUTPUT_DIR / "confusion_matrix.png")
 
-    print("\n" + "=" * 60)
-    print("Training complete!")
+    print("\nTraining complete")
     print(f"Model: {model_path}")
     print("\nNext: copy gateway_model.pkl into the smart-gateway Docker image")
     print("      (or mount it via a volume and set STATIC_MODEL_PATH env var)")
-    print("=" * 60)
 
 
 if __name__ == "__main__":

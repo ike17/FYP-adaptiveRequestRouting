@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-# benchmarks/analyze_multiple.py
-# Aggregates results across multiple runs and produces combined charts and stats.
-
 import argparse
 import json
 import sys
@@ -40,20 +37,12 @@ COLORS = {
     "adaptive":        "#9b59b6",
 }
 
-# Overload query number (1-based). Derived from summary JSON at load time;
-# falls back to 51 for legacy results that predate the overload_query field.
 OVERLOAD_QUERY = 51
 
-# runs with overall success rate below this are excluded from aggregation
 MIN_ACCEPTABLE_SUCCESS_RATE = 0.10
 
 
-# =============================================================================
-# UTILITIES
-# =============================================================================
-
 def bootstrap_ci(data: list, n_iter: int = 5000, ci: float = 0.95) -> tuple:
-    """Distribution-free bootstrap confidence interval for the mean."""
     if len(data) < 2:
         m = float(np.mean(data)) if data else 0.0
         return m, m
@@ -66,7 +55,6 @@ def bootstrap_ci(data: list, n_iter: int = 5000, ci: float = 0.95) -> tuple:
 
 
 def calculate_effective_latency(results: list) -> float:
-    """Throughput-adjusted latency: total wall-clock time / successful completions."""
     successful = [r for r in results if r.get('success')]
     if not successful:
         return float('inf')
@@ -83,17 +71,7 @@ def get_latencies(data: list, phase: str = "full") -> list[float]:
     return [r["total_time_ms"] for r in successful]
 
 
-# =============================================================================
-# DATA LOADING
-# =============================================================================
-
 def _discover_run_dirs(base_dir: Path) -> list[Path]:
-    """Return sorted list of per-run subdirs.
-
-    Supports both old-style 'run_N' directories and the new timestamped
-    'YYYYMMDD_HHMMSS' directories produced by run_multiple.sh.  Dirs are
-    sorted lexicographically (timestamps sort chronologically).
-    """
     import re
     ts_pattern = re.compile(r"^\d{8}_\d{6}$")
     old_pattern = re.compile(r"^run_\d+$")
@@ -132,7 +110,6 @@ def load_aggregated_results(base_dir: Path, num_runs: int) -> dict:
                           f"(< {MIN_ACCEPTABLE_SUCCESS_RATE*100:.0f}%) — EXCLUDED")
                     excluded.append({'run': run_dir.name, 'config': config, 'success_rate': sr})
                     continue
-                # Derive overload query from summary (first one wins)
                 if "overload_query" in summary and OVERLOAD_QUERY == 51:
                     OVERLOAD_QUERY = summary["overload_query"]
 
@@ -177,10 +154,6 @@ def compute_aggregated_summaries(results: dict) -> dict:
         }
     return summaries
 
-
-# =============================================================================
-# CHARTS — latency
-# =============================================================================
 
 def create_latency_comparison_chart(summaries: dict, output_path: Path):
     configs = [c for c in EXPERIMENT_ORDER if c in summaries]
@@ -277,10 +250,6 @@ def create_latency_over_time_avg(results: dict, output_path: Path):
 
 
 def create_latency_boxplots(results: dict, output_path: Path):
-    """
-    Box plots of per-run post-overload latency distributions for successful queries.
-    Shows run-to-run variance — unique to multi-run analysis.
-    """
     configs = [c for c in EXPERIMENT_ORDER if c in results]
     if not configs:
         return
@@ -313,7 +282,6 @@ def create_latency_boxplots(results: dict, output_path: Path):
                         patch_artist=True, showfliers=False,
                         medianprops=dict(color='black', linewidth=2))
 
-        # Colour by config
         idx = 0
         for ci, config in enumerate(configs):
             run_count = sum(
@@ -325,7 +293,6 @@ def create_latency_boxplots(results: dict, output_path: Path):
                 bp['boxes'][idx].set_alpha(0.7)
                 idx += 1
 
-        # X-tick group labels
         for ci, config in enumerate(configs):
             center = ci * spacing + (n_runs - 1) / 2
             ax.text(center, ax.get_ylim()[0] - ax.get_ylim()[1] * 0.04,
@@ -338,7 +305,6 @@ def create_latency_boxplots(results: dict, output_path: Path):
                      '(box = IQR, whiskers = 1.5×IQR, outliers hidden)', fontsize=13)
         ax.set_xticks([])
 
-        # Legend patches
         from matplotlib.patches import Patch
         legend_patches = [Patch(facecolor=COLORS[c], label=LABELS[c]) for c in configs]
         ax.legend(handles=legend_patches, loc='upper right')
@@ -349,14 +315,7 @@ def create_latency_boxplots(results: dict, output_path: Path):
         print(f"saved: {fname}")
 
 
-# =============================================================================
-# CHARTS — success rate
-# =============================================================================
-
 def create_success_rate_over_time_avg(results: dict, output_path: Path, window: int = 10):
-    """
-    Rolling success rate averaged across all valid runs.
-    """
     configs = [c for c in EXPERIMENT_ORDER if c in results]
     if not configs:
         return
@@ -434,10 +393,6 @@ def create_pre_post_success_comparison(results: dict, output_path: Path):
 
 
 def create_per_run_success_rates(results: dict, output_path: Path):
-    """
-    Overload success rate for each individual run, grouped by mode.
-    Shows reproducibility — high variance here means the result is noisy.
-    """
     configs = [c for c in EXPERIMENT_ORDER if c in results]
     if not configs:
         return
@@ -475,12 +430,7 @@ def create_per_run_success_rates(results: dict, output_path: Path):
     print("saved: per_run_per_run_overload_success.png")
 
 
-# =============================================================================
-# CHARTS — routing and throughput
-# =============================================================================
-
 def create_routing_distribution(results: dict, output_path: Path):
-    """GPU vs CPU routing counts per mode, split normal/overload phase."""
     configs = [c for c in EXPERIMENT_ORDER if c in results]
     if not configs:
         return
@@ -527,7 +477,6 @@ def create_routing_distribution(results: dict, output_path: Path):
 
 
 def create_token_throughput_chart(results: dict, summaries: dict, output_path: Path):
-    """Mean token throughput (tok/s) per mode, split normal/overload phase."""
     configs = [c for c in EXPERIMENT_ORDER if c in results]
     if not configs:
         return
@@ -578,16 +527,7 @@ def create_token_throughput_chart(results: dict, summaries: dict, output_path: P
     print("saved: token_throughput.png")
 
 
-# =============================================================================
-# CHARTS — recovery
-# =============================================================================
-
 def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
-    """
-    Overload latency recovery: per-mode mean rolling latency across runs.
-    X-axis = queries after overload (0 = first post-overload query).
-    Dotted horizontal = each mode's aggregated normal-phase mean.
-    """
     configs = [c for c in EXPERIMENT_ORDER if c in results]
     if not configs:
         return
@@ -599,8 +539,7 @@ def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
         data = results[config]
         run_ids = sorted(set(r.get('run_id', 1) for r in data))
 
-        # Collect per-run post-overload successful latencies by relative query index
-        rel_lats: dict = {}  # relative_idx → list of latencies across runs
+        rel_lats: dict = {}
         pre_means = []
 
         for run_id in run_ids:
@@ -652,10 +591,6 @@ def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
             print(f"  {LABELS[config]}: query +{q} after overload")
 
 
-# =============================================================================
-# CHARTS — failure analysis
-# =============================================================================
-
 def create_failure_analysis(results: dict, output_path: Path):
     configs = [c for c in EXPERIMENT_ORDER if c in results]
     if not configs:
@@ -691,7 +626,6 @@ def create_failure_analysis(results: dict, output_path: Path):
     df.to_csv(output_path / 'failure_analysis.csv', index=False)
     print("saved: failure_analysis.csv")
 
-    # Stacked bar chart of failure types
     error_cols = [c for c in df.columns
                   if c not in ('Mode', 'Total', 'Failures', 'Failure Rate')]
     if error_cols:
@@ -719,10 +653,6 @@ def create_failure_analysis(results: dict, output_path: Path):
     print("\n--- failure breakdown ---")
     print(df.to_string(index=False))
 
-
-# =============================================================================
-# STATISTICAL TESTS
-# =============================================================================
 
 def cohens_d(a: list, b: list) -> float:
     n1, n2 = len(a), len(b)
@@ -776,13 +706,11 @@ def run_comparison(label, lat1, lat2, config1, config2, n_comparisons) -> dict |
 
 
 def perform_statistical_tests(results: dict, output_path: Path) -> list:
-    # Build pairs dynamically from available modes (in canonical order)
     present = [m for m in EXPERIMENT_ORDER if m in results]
     pairs = [(present[i], present[j]) for i in range(len(present)) for j in range(i+1, len(present))]
     n_comparisons = len(pairs)
     comparisons = []
 
-    # Derive total query count from data for labels
     n_total = max((len(results[c]) for c in present), default=100)
     for config1, config2 in pairs:
         for phase in ("full", "pre", "post"):
@@ -825,10 +753,6 @@ def perform_statistical_tests(results: dict, output_path: Path) -> list:
 
     return comparisons
 
-
-# =============================================================================
-# SUMMARY TABLE
-# =============================================================================
 
 def create_summary_table(summaries: dict, results: dict, output_path: Path) -> pd.DataFrame:
     rows = []
@@ -903,10 +827,6 @@ def create_summary_table(summaries: dict, results: dict, output_path: Path) -> p
     return df
 
 
-# =============================================================================
-# MAIN
-# =============================================================================
-
 def main():
     parser = argparse.ArgumentParser(
         description="Analyse aggregated scheduler experiment results across multiple runs")
@@ -934,26 +854,21 @@ def main():
     print(f"found data for: {list(results.keys())}")
     summaries = compute_aggregated_summaries(results)
 
-    # Latency charts
     create_latency_comparison_chart(summaries, output_dir)
     create_percentile_comparison(summaries, output_dir)
     create_latency_over_time_avg(results, output_dir)
     create_latency_boxplots(results, output_dir)
     create_recovery_chart(results, output_dir)
 
-    # Success rate charts
     create_success_rate_over_time_avg(results, output_dir)
     create_pre_post_success_comparison(results, output_dir)
     create_per_run_success_rates(results, output_dir)
 
-    # Routing and throughput
     create_routing_distribution(results, output_dir)
     create_token_throughput_chart(results, summaries, output_dir)
 
-    # Failure analysis
     create_failure_analysis(results, output_dir)
 
-    # Stats and table
     perform_statistical_tests(results, output_dir)
     create_summary_table(summaries, results, output_dir)
 

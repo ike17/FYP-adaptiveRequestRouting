@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# benchmarks/analyze_results.py
-# loads per-query result JSONs and produces charts + statistical analysis
-# updated for the L7 Smart Gateway experiment structure (baseline / static / bandit / adaptive)
-
 import argparse
 import json
 import sys
@@ -21,7 +17,6 @@ sns.set_palette("husl")
 FIGURE_DPI  = 300
 FIGURE_SIZE = (10, 6)
 
-# canonical experiment order used consistently across all plots
 EXPERIMENT_ORDER = ["baseline", "least_in_flight", "static", "bandit_plain", "bandit_regime", "adaptive"]
 
 COLORS = {
@@ -42,8 +37,6 @@ LABELS = {
     "adaptive":        "Adaptive",
 }
 
-# Overload query number (1-based). Derived from summary JSON at load time;
-# falls back to 51 for legacy results that predate the overload_query field.
 OVERLOAD_QUERY = 51
 
 
@@ -59,7 +52,6 @@ def load_results(results_dir: Path) -> tuple[dict, dict]:
         config = file.stem.replace("_summary", "")
         with open(file) as f:
             summaries[config] = json.load(f)
-    # Derive overload query from the first summary that has it
     for s in summaries.values():
         if "overload_query" in s:
             OVERLOAD_QUERY = s["overload_query"]
@@ -94,10 +86,6 @@ def calculate_effective_latency(results: list) -> float:
     total_ms = sum(r.get('measured_time_ms', 0) for r in results)
     return total_ms / len(successful)
 
-
-# =============================================================================
-# CHARTS
-# =============================================================================
 
 def create_latency_comparison_chart(summaries: dict, output_path: Path):
     configs = [c for c in EXPERIMENT_ORDER if c in summaries]
@@ -184,11 +172,6 @@ def create_latency_over_time(results: dict, output_path: Path):
 
 
 def create_routing_distribution(results: dict, output_path: Path):
-    """
-    Bar chart showing how many requests each mode routed to GPU vs CPU.
-    This is unique to the L7 gateway architecture — the gateway knows where
-    each request went, unlike the old scheduler-per-pod approach.
-    """
     configs = [c for c in EXPERIMENT_ORDER if c in results]
     if not configs:
         return
@@ -340,7 +323,6 @@ def create_failure_analysis(results: dict, output_path: Path):
 
 
 def create_token_throughput_chart(summaries: dict, output_path: Path):
-    """Bar chart of mean token throughput (tok/s) per routing mode."""
     configs = [
         c for c in EXPERIMENT_ORDER
         if c in summaries and summaries[c].get("mean_tokens_per_sec")
@@ -372,14 +354,6 @@ def create_token_throughput_chart(summaries: dict, output_path: Path):
 
 
 def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
-    """
-    Post-overload latency recovery plot.
-    X-axis: queries relative to overload start (0 = first overload query).
-    Y-axis: 5-query rolling average latency.
-    Horizontal dashed line per mode = normal-phase mean latency.
-    Reports the query index at which each mode first drops back below
-    normal_mean * 1.2 (20% tolerance band).
-    """
     configs = [c for c in EXPERIMENT_ORDER if c in results]
     if not configs:
         return
@@ -404,7 +378,6 @@ def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
 
         pre_mean = float(np.mean(pre_lats))
 
-        # Rolling average over overload-phase queries
         post_series = pd.Series(post_lats)
         rolling_avg = post_series.rolling(window=window, min_periods=1).mean().tolist()
         x_vals = list(range(len(rolling_avg)))
@@ -415,7 +388,6 @@ def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
         ax.axhline(y=pre_mean, color=color, linestyle=':', alpha=0.5,
                    label=f'{lbl} normal mean ({pre_mean:.0f}ms)')
 
-        # Find first recovery point
         threshold = pre_mean * 1.2
         for i, v in enumerate(rolling_avg):
             if v <= threshold:
@@ -438,10 +410,6 @@ def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
         for config, q in recovery_queries.items():
             print(f"  {config}: query +{q} after overload")
 
-
-# =============================================================================
-# STATISTICAL TESTS
-# =============================================================================
 
 def cohens_d(a: list, b: list) -> float:
     n1, n2 = len(a), len(b)
@@ -498,7 +466,6 @@ def run_comparison(label, lat1, lat2, config1, config2, n_comparisons) -> dict |
 
 
 def perform_statistical_tests(results: dict, output_path: Path) -> list:
-    # Build pairs dynamically from available modes (in canonical order)
     present = [m for m in EXPERIMENT_ORDER if m in results]
     pairs = [(present[i], present[j]) for i in range(len(present)) for j in range(i+1, len(present))]
     n_comparisons = len(pairs)
@@ -580,7 +547,6 @@ def create_summary_table(summaries: dict, results: dict, output_path: Path) -> p
                 lo, hi = bootstrap_ci(lats)
                 ci_str = f"[{lo:.0f}-{hi:.0f}]"
 
-        # Routing distribution
         gpu_pct = cpu_pct = "n/a"
         if config in results:
             successful = [r for r in results[config] if r.get("success")]
@@ -617,10 +583,6 @@ def create_summary_table(summaries: dict, results: dict, output_path: Path) -> p
     print(df.to_string(index=False))
     return df
 
-
-# =============================================================================
-# MAIN
-# =============================================================================
 
 def main():
     parser = argparse.ArgumentParser(description="analyse smart-gateway experiment results")
