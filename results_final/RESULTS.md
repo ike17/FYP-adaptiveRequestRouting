@@ -47,7 +47,7 @@ The reward function uses a pseudo-Bernoulli update: continuous rewards r ∈ [0,
 | Least In-Flight | 80.3% | 4,754 | 2,070 | 8,362 | 10,692 | 12,474 | 96% |
 
 Latency values in this table are computed over successful requests only. For a failure-aware
-summary, use `Eff. lat (ms)` in `aggregated_comparison_table.csv`.
+summary, use `Time / success (ms)` in `aggregated_comparison_table.csv`.
 
 ---
 
@@ -55,7 +55,7 @@ summary, use `Eff. lat (ms)` in `aggregated_comparison_table.csv`.
 
 | Comparison | Phase | MWU p-value | Cohen's d | Interpretation |
 |------------|-------|--------------|-----------|----------------|
-| Baseline vs Bandit (plain) | Full | p = 0.098 | d = −0.019 (negligible) | TS matches GPU oracle with zero configuration |
+| Baseline vs Bandit (plain) | Full | p = 0.098 | d = −0.019 (negligible) | TS approaches the fixed GPU reference with zero configuration |
 | Bandit (plain) vs Adaptive | Overload | p < 0.001 | d = 0.604 (medium) | Adaptive 17.4% lower overload latency |
 | Bandit (regime) vs Adaptive | Full | p = 0.151 | d = 0.063 (negligible) | CB adds negligible improvement over regime detection alone |
 | Baseline vs Static ML | Full | p < 0.001 | d = 0.655 (medium) | Static 47% lower mean latency but −9.2pp success rate |
@@ -76,9 +76,9 @@ Both results marked p < 0.001 (Baseline vs Static ML; Bandit plain vs Adaptive o
 
 ## Narrative
 
-**Effective latency is the primary metric.** Successful-only latency (the table above) understates the cost of modes with high failure rates. Effective latency — computed as `(mean_latency × success_rate) + (SLA_timeout × failure_rate)` — is the operationally correct comparison. Full values are in `aggregated_comparison_table.csv`. The narrative below leads with effective latency; success rate is the cost side of each trade-off.
+**Time per successful response is the main failure-aware summary.** Successful-only latency (the table above) understates the cost of modes with high failure rates. `Time / success (ms)` is computed as the total client-observed elapsed time across all queries divided by the number of successful responses. This is not a timeout-penalty formula; it is a workload-level efficiency measure that rises when the system spends more time producing fewer successful outcomes. Full values are in `aggregated_comparison_table.csv`.
 
-**bandit_plain is the success-rate champion.** Thompson Sampling alone matches the always-GPU oracle (p = 0.098, negligible effect size), requiring no prior knowledge of node capabilities. It outperforms the trained static classifier by 8.5 percentage points in success rate.
+**baseline has the highest overall success rate, while bandit_plain is the strongest learned policy.** Thompson Sampling alone comes within 0.7 percentage points of the fixed GPU reference (p = 0.098, negligible effect size), requiring no prior knowledge of node capabilities. It outperforms the trained static classifier by 8.5 percentage points in success rate.
 
 **adaptive wins on overload latency.** During the high-load phase (the second half of each 400-query run, pooled across runs), the 3-state circuit breaker detects GPU degradation and redirects traffic, reducing mean overload latency by 17.4% vs bandit_plain (10.9 s vs 13.1 s, medium effect). The cost is −3.5pp success rate, reflecting occasional misroutes to the CPU node under sustained flood.
 

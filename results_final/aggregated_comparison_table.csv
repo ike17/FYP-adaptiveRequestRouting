@@ -1,4 +1,4 @@
-Mode,OK / Total,Success Rate,Mean (ms),95% CI,Std (ms),P50 (ms),P95 (ms),P99 (ms),P99/P50,Eff. lat (ms),Normal (ms),Overload (ms),vs Baseline,% GPU,% CPU,Tok/s (mean)
+Mode,OK / Total,Success Rate,Mean (ms),95% CI,Std (ms),P50 (ms),P95 (ms),P99 (ms),P99/P50,Time / success (ms),Normal (ms),Overload (ms),vs Baseline,% GPU,% CPU,Tok/s (mean)
 Baseline,3597 / 4000,89.9%,6711.2,[6512–6919],6098.7,2759.4,15498.8,17401.2,6.31,8538.6,1591.3,13123.1,+0.0%,100%,0%,143.1
 Least In-Flight,3212 / 4000,80.3%,4753.9,[4627–4883],3635.8,2814.6,10692.0,12473.8,4.43,8841.1,2070.4,8361.9,+29.2%,96%,4%,140.4
 Static ML,3227 / 4000,80.7%,3545.0,[3449–3645],2831.8,2623.4,8542.5,14385.3,5.48,8329.7,1944.7,6082.5,+47.2%,97%,3%,142.7
