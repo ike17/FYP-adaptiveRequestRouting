@@ -38,6 +38,7 @@ COLORS = {
 }
 
 OVERLOAD_QUERY = 51
+QUERIES_PER_RUN = 400   # queries per single run (used in phase labels)
 
 MIN_ACCEPTABLE_SUCCESS_RATE = 0.10
 
@@ -54,7 +55,7 @@ def bootstrap_ci(data: list, n_iter: int = 5000, ci: float = 0.95) -> tuple:
     return lo, hi
 
 
-def calculate_effective_latency(results: list) -> float:
+def calculate_time_per_success(results: list) -> float:
     successful = [r for r in results if r.get('success')]
     if not successful:
         return float('inf')
@@ -148,36 +149,71 @@ def compute_aggregated_summaries(results: dict) -> dict:
             "p95_latency_ms": float(np.percentile(latencies, 95)),
             "p99_latency_ms": float(np.percentile(latencies, 99)),
             "std_latency_ms": float(np.std(latencies, ddof=1)) if len(latencies) > 1 else 0.0,
-            "effective_latency_ms": round(calculate_effective_latency(data), 1),
+            "time_per_success_ms": round(calculate_time_per_success(data), 1),
             "mean_tokens_per_sec": round(float(np.mean(tok_rates)), 2) if tok_rates else None,
             "median_tokens_per_sec": round(float(np.median(tok_rates)), 2) if tok_rates else None,
         }
     return summaries
 
 
-def create_latency_comparison_chart(summaries: dict, output_path: Path):
+def _clean_axes(ax, fig=None):
+    """White background, horizontal-only light gridlines, no top/right spines."""
+    if fig is not None:
+        fig.patch.set_facecolor('white')
+    ax.set_facecolor('white')
+    ax.grid(axis='y', color='#e0e0e0', linewidth=0.7, zorder=0)
+    ax.grid(axis='x', visible=False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#cccccc')
+    ax.spines['bottom'].set_color('#cccccc')
+
+
+def create_latency_comparison_chart(summaries: dict, results: dict, output_path: Path):
     configs = [c for c in EXPERIMENT_ORDER if c in summaries]
     if not configs:
         return
     means  = [summaries[c]["mean_latency_ms"] for c in configs]
-    stds   = [summaries[c]["std_latency_ms"] for c in configs]
     colors = [COLORS[c] for c in configs]
 
+    ci_lo, ci_hi = [], []
+    for c in configs:
+        run_ids = sorted(set(r.get('run_id', 1) for r in results.get(c, [])))
+        per_run = [
+            float(np.mean([r['total_time_ms'] for r in results[c]
+                           if r.get('run_id') == rid and r.get('success')]))
+            for rid in run_ids
+            if any(r.get('success') and r.get('run_id') == rid for r in results[c])
+        ]
+        lo, hi = bootstrap_ci(per_run) if len(per_run) >= 2 else (means[configs.index(c)], means[configs.index(c)])
+        ci_lo.append(lo)
+        ci_hi.append(hi)
+
+    err_lo = [max(m - lo, 0) for m, lo in zip(means, ci_lo)]
+    err_hi = [max(hi - m, 0) for m, hi in zip(means, ci_hi)]
+
     fig, ax = plt.subplots(figsize=FIGURE_SIZE)
+    _clean_axes(ax, fig)
     x = np.arange(len(configs))
-    bars = ax.bar(x, means, yerr=stds, capsize=5, color=colors,
-                  edgecolor='black', linewidth=0.5)
+    bars = ax.bar(x, means, yerr=[err_lo, err_hi], capsize=4, color=colors,
+                  edgecolor='black', linewidth=0.5,
+                  error_kw=dict(elinewidth=0.8, capthick=0.8))
     ax.set_xlabel('Routing Mode', fontsize=12)
     ax.set_ylabel('Mean Latency (ms)', fontsize=12)
-    ax.set_title('Aggregated Mean End-to-End Latency by Routing Mode\n'
-                 '(error bars = ±1 std, pooled across all runs)', fontsize=13)
+    ax.set_title('Mean end-to-end latency by routing mode', fontsize=14, pad=12)
     ax.set_xticks(x)
     ax.set_xticklabels([LABELS[c] for c in configs], fontsize=11)
-    for bar, mean, std in zip(bars, means, stds):
-        ax.annotate(f'{mean:.0f}±{std:.0f}',
+    ax.tick_params(axis='both', labelsize=10)
+    ax.set_ylim(0, max(means) * 1.22)
+
+    survivorship_modes = {'static', 'least_in_flight'}
+    for bar, mean, c in zip(bars, means, configs):
+        label = f'{mean:.0f}' + (' *' if c in survivorship_modes else '')
+        ax.annotate(label,
                     xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                    xytext=(0, 3), textcoords="offset points",
+                    xytext=(0, 4), textcoords="offset points",
                     ha='center', va='bottom', fontsize=9)
+
     plt.tight_layout()
     plt.savefig(output_path / 'latency_comparison.png', dpi=FIGURE_DPI, bbox_inches='tight')
     plt.close()
@@ -194,17 +230,22 @@ def create_percentile_comparison(summaries: dict, output_path: Path):
     p99s = [summaries[c]["p99_latency_ms"] for c in configs]
 
     fig, ax = plt.subplots(figsize=FIGURE_SIZE)
+    _clean_axes(ax, fig)
     x = np.arange(len(configs))
     width = 0.25
     ax.bar(x - width, p50s, width, label='P50', color='#2ecc71', edgecolor='black', linewidth=0.5)
     ax.bar(x,         p95s, width, label='P95', color='#f39c12', edgecolor='black', linewidth=0.5)
     ax.bar(x + width, p99s, width, label='P99', color='#e74c3c', edgecolor='black', linewidth=0.5)
+    ax.axhline(y=15000, color='#666', linestyle='--', linewidth=1.0, alpha=0.8, zorder=3)
+    ax.text(len(configs) - 0.6, 15350, 'Gateway timeout (15 s)',
+            ha='right', fontsize=9, color='#555', va='bottom')
     ax.set_xlabel('Routing Mode', fontsize=12)
     ax.set_ylabel('Latency (ms)', fontsize=12)
-    ax.set_title('Aggregated Latency Percentiles by Routing Mode (P50 / P95 / P99)', fontsize=13)
+    ax.set_title('Latency percentiles by routing mode', fontsize=14, pad=12)
     ax.set_xticks(x)
     ax.set_xticklabels([LABELS[c] for c in configs], fontsize=11)
-    ax.legend()
+    ax.tick_params(axis='both', labelsize=10)
+    ax.legend(fontsize=10, frameon=False)
     plt.tight_layout()
     plt.savefig(output_path / 'percentile_comparison.png', dpi=FIGURE_DPI, bbox_inches='tight')
     plt.close()
@@ -230,19 +271,21 @@ def create_latency_over_time_avg(results: dict, output_path: Path):
 
         queries = sorted(query_stats.keys())
         mean_lats = [np.mean(query_stats[q]) for q in queries]
-        smooth = pd.Series(mean_lats).rolling(window=5, min_periods=1).mean().tolist()
+        smooth = pd.Series(mean_lats).rolling(window=10, min_periods=1).mean().tolist()
 
         ax.scatter(queries, mean_lats, color=COLORS[config], alpha=0.12, s=8)
         ax.plot(queries, smooth, label=LABELS[config], color=COLORS[config],
                 alpha=0.9, linewidth=2)
 
     ax.axvline(x=OVERLOAD_QUERY, color='red', linestyle='--', alpha=0.7,
-               label=f'Overload (Q{OVERLOAD_QUERY})', linewidth=1.5)
+               linewidth=1.5)
+    ax.text(OVERLOAD_QUERY + 2, ax.get_ylim()[1] * 0.95 if ax.get_ylim()[1] > 0 else 15000,
+            f'Overload (Q{OVERLOAD_QUERY})', color='red', fontsize=9, va='top')
     ax.set_xlabel('Query Number', fontsize=12)
     ax.set_ylabel('Mean Latency (ms) across runs', fontsize=12)
     ax.set_title('Average Latency Over Time — Adaptive Behaviour Under Overload\n'
-                 '(dots = per-query mean, lines = 5-query rolling avg)', fontsize=13)
-    ax.legend(loc='upper right')
+                 '(dots = per-query mean, lines = 10-query rolling avg; successful requests only)', fontsize=13)
+    ax.legend(loc='upper left')
     plt.tight_layout()
     plt.savefig(output_path / 'latency_over_time_avg.png', dpi=FIGURE_DPI, bbox_inches='tight')
     plt.close()
@@ -315,12 +358,14 @@ def create_latency_boxplots(results: dict, output_path: Path):
         print(f"saved: {fname}")
 
 
-def create_success_rate_over_time_avg(results: dict, output_path: Path, window: int = 10):
+def create_success_rate_over_time_avg(results: dict, output_path: Path, window: int = 20):
     configs = [c for c in EXPERIMENT_ORDER if c in results]
     if not configs:
         return
 
     fig, ax = plt.subplots(figsize=(12, 6))
+    _clean_axes(ax, fig)
+
     for config in configs:
         all_data = results[config]
         run_ids = sorted(set(r.get('run_id', 1) for r in all_data))
@@ -340,17 +385,21 @@ def create_success_rate_over_time_avg(results: dict, output_path: Path, window: 
         queries = sorted(query_success.keys())
         avg_rates = [np.mean(query_success[q]) for q in queries]
         ax.plot(queries, avg_rates, label=LABELS[config],
-                color=COLORS[config], linewidth=2)
+                color=COLORS[config], linewidth=2.0)
 
-    ax.axvline(x=OVERLOAD_QUERY, color='red', linestyle='--', alpha=0.7,
-               label=f'Overload (Q{OVERLOAD_QUERY})', linewidth=1.5)
+    ax.axvline(x=OVERLOAD_QUERY, color='#cc0000', linestyle='--',
+               linewidth=1.2, alpha=0.8, zorder=3)
+    ax.text(OVERLOAD_QUERY + 3, 104, 'Overload begins',
+            color='#cc0000', fontsize=9, va='top')
     ax.set_xlabel('Query Number', fontsize=12)
-    ax.set_ylabel(f'Avg Success Rate % (rolling {window}-query window)', fontsize=12)
-    ax.set_title('Aggregated Success Rate Over Time — Overload Resilience\n'
-                 '(averaged across all valid runs)', fontsize=13)
-    ax.set_ylim([0, 105])
-    ax.legend(loc='lower left')
+    ax.set_ylabel('Success rate (%)', fontsize=12)
+    ax.set_title('Success rate over time', fontsize=14, pad=12)
+    ax.set_ylim([0, 108])
+    ax.tick_params(axis='both', labelsize=10)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.12),
+              ncol=3, fontsize=10, frameon=False)
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.18)
     plt.savefig(output_path / 'success_rate_over_time_avg.png', dpi=FIGURE_DPI, bbox_inches='tight')
     plt.close()
     print("saved: success_rate_over_time_avg.png")
@@ -370,22 +419,27 @@ def create_pre_post_success_comparison(results: dict, output_path: Path):
         post_rates.append(sum(1 for r in post if r.get('success')) / max(len(post), 1) * 100)
 
     fig, ax = plt.subplots(figsize=FIGURE_SIZE)
+    _clean_axes(ax, fig)
     x = np.arange(len(configs))
-    width = 0.35
-    ax.bar(x - width / 2, pre_rates,  width, label=f'Normal (Q1–{OVERLOAD_QUERY-1})',
-           color='#2ecc71', edgecolor='black', linewidth=0.5)
-    ax.bar(x + width / 2, post_rates, width, label=f'Overload (Q{OVERLOAD_QUERY}–100)',
-           color='#e74c3c', edgecolor='black', linewidth=0.5, alpha=0.85)
+    width = 0.32
+    bars_pre  = ax.bar(x - width / 2, pre_rates,  width, label='Normal',
+                       color='#2ecc71', edgecolor='black', linewidth=0.5)
+    bars_post = ax.bar(x + width / 2, post_rates, width, label='Overload',
+                       color='#e74c3c', edgecolor='black', linewidth=0.5, alpha=0.85)
     ax.set_xlabel('Routing Mode', fontsize=12)
-    ax.set_ylabel('Success Rate (%)', fontsize=12)
-    ax.set_title('Aggregated Normal vs Overload Success Rate', fontsize=13)
+    ax.set_ylabel('Success rate (%)', fontsize=12)
+    ax.set_title('Success rate by phase', fontsize=14, pad=12)
     ax.set_xticks(x)
     ax.set_xticklabels([LABELS[c] for c in configs], fontsize=11)
-    ax.set_ylim([0, 110])
-    ax.legend()
-    for i, (pre, post) in enumerate(zip(pre_rates, post_rates)):
-        ax.text(i - width / 2, pre + 1,  f'{pre:.0f}%',  ha='center', va='bottom', fontsize=9)
-        ax.text(i + width / 2, post + 1, f'{post:.0f}%', ha='center', va='bottom', fontsize=9)
+    ax.tick_params(axis='both', labelsize=10)
+    ax.set_ylim([0, 115])
+    ax.legend(fontsize=10, frameon=False, loc='upper right')
+    for bar, val in zip(bars_pre, pre_rates):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1,
+                f'{val:.0f}%', ha='center', va='bottom', fontsize=9)
+    for bar, val in zip(bars_post, post_rates):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1,
+                f'{val:.0f}%', ha='center', va='bottom', fontsize=9)
     plt.tight_layout()
     plt.savefig(output_path / 'pre_post_success_comparison.png', dpi=FIGURE_DPI, bbox_inches='tight')
     plt.close()
@@ -435,41 +489,41 @@ def create_routing_distribution(results: dict, output_path: Path):
     if not configs:
         return
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6), sharey=False)
-    for ax, phase, title in [
-        (axes[0], "pre",  f"Normal (Q1–{OVERLOAD_QUERY-1})"),
-        (axes[1], "post", f"Overload (Q{OVERLOAD_QUERY}–100)"),
-    ]:
-        gpu_counts, cpu_counts = [], []
-        for config in configs:
-            data = results[config]
-            if phase == "pre":
-                subset = [r for r in data if r.get('query_number', 0) < OVERLOAD_QUERY]
-            else:
-                subset = [r for r in data if r.get('query_number', 0) >= OVERLOAD_QUERY]
+    pre_cpu_pcts, post_cpu_pcts = [], []
+    for config in configs:
+        data = results[config]
+        for phase, lst in [("pre", pre_cpu_pcts), ("post", post_cpu_pcts)]:
+            subset = [r for r in data if r.get('query_number', 0) < OVERLOAD_QUERY] \
+                     if phase == "pre" else \
+                     [r for r in data if r.get('query_number', 0) >= OVERLOAD_QUERY]
             ok = [r for r in subset if r.get('success')]
-            gpu_counts.append(sum(1 for r in ok if r.get('routed_to') == 'gpu'))
-            cpu_counts.append(sum(1 for r in ok if r.get('routed_to') == 'cpu'))
+            total = max(len(ok), 1)
+            cpu_n = sum(1 for r in ok if r.get('routed_to') == 'cpu')
+            lst.append(cpu_n / total * 100)
 
-        x = np.arange(len(configs))
-        width = 0.35
-        b_gpu = ax.bar(x - width / 2, gpu_counts, width, label='GPU',
-                       color='#3498db', edgecolor='black', linewidth=0.5)
-        b_cpu = ax.bar(x + width / 2, cpu_counts, width, label='CPU',
-                       color='#e67e22', edgecolor='black', linewidth=0.5)
-        ax.set_title(title, fontsize=12)
-        ax.set_xlabel('Routing Mode', fontsize=11)
-        ax.set_ylabel('Successful Requests', fontsize=11)
-        ax.set_xticks(x)
-        ax.set_xticklabels([LABELS[c] for c in configs], fontsize=10)
-        ax.legend()
-        for bar in list(b_gpu) + list(b_cpu):
-            h = bar.get_height()
-            if h > 0:
-                ax.text(bar.get_x() + bar.get_width() / 2, h + 1,
-                        str(int(h)), ha='center', va='bottom', fontsize=8)
-
-    fig.suptitle('Routing Distribution — GPU vs CPU per Phase (aggregated)', fontsize=13)
+    fig, ax = plt.subplots(figsize=FIGURE_SIZE)
+    _clean_axes(ax, fig)
+    x = np.arange(len(configs))
+    width = 0.32
+    b_pre  = ax.bar(x - width / 2, pre_cpu_pcts,  width, label='Normal',
+                    color='#2ecc71', edgecolor='black', linewidth=0.5)
+    b_post = ax.bar(x + width / 2, post_cpu_pcts, width, label='Overload',
+                    color='#e74c3c', edgecolor='black', linewidth=0.5, alpha=0.85)
+    for bar, val in zip(b_pre, pre_cpu_pcts):
+        if val > 0.3:
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.1,
+                    f'{val:.1f}%', ha='center', va='bottom', fontsize=9)
+    for bar, val in zip(b_post, post_cpu_pcts):
+        if val > 0.3:
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.1,
+                    f'{val:.1f}%', ha='center', va='bottom', fontsize=9)
+    ax.set_xlabel('Routing Mode', fontsize=12)
+    ax.set_ylabel('CPU share of successful requests (%)', fontsize=12)
+    ax.set_title('CPU routing share by phase', fontsize=14, pad=12)
+    ax.set_xticks(x)
+    ax.set_xticklabels([LABELS[c] for c in configs], fontsize=11)
+    ax.tick_params(axis='both', labelsize=10)
+    ax.legend(fontsize=10, frameon=False)
     plt.tight_layout()
     plt.savefig(output_path / 'routing_distribution.png', dpi=FIGURE_DPI, bbox_inches='tight')
     plt.close()
@@ -481,6 +535,7 @@ def create_token_throughput_chart(results: dict, summaries: dict, output_path: P
     if not configs:
         return
 
+    n_total = max((len(results[c]) for c in configs), default=OVERLOAD_QUERY)
     fig, ax = plt.subplots(figsize=FIGURE_SIZE)
     x = np.arange(len(configs))
     width = 0.35
@@ -503,7 +558,7 @@ def create_token_throughput_chart(results: dict, summaries: dict, output_path: P
                     label=f'Normal (Q1–{OVERLOAD_QUERY-1})',
                     color='#2ecc71', edgecolor='black', linewidth=0.5)
     b_post = ax.bar(x + width / 2, post_tok, width,
-                    label=f'Overload (Q{OVERLOAD_QUERY}–100)',
+                    label=f'Overload (Q{OVERLOAD_QUERY}–{QUERIES_PER_RUN} per run)',
                     color='#e74c3c', edgecolor='black', linewidth=0.5, alpha=0.85)
 
     for bar in list(b_pre) + list(b_post):
@@ -517,7 +572,8 @@ def create_token_throughput_chart(results: dict, summaries: dict, output_path: P
     ax.set_xlabel('Routing Mode', fontsize=12)
     ax.set_ylabel('Mean Tokens / Second', fontsize=12)
     ax.set_title('Aggregated Token Generation Throughput by Routing Mode\n'
-                 '(GPU ~165 tok/s; CPU ~85 tok/s — lower post-overload = more CPU routing)', fontsize=13)
+                 '(GPU ~165 tok/s; CPU ~85 tok/s — post-overload drop reflects queueing pressure, not routing alone)',
+                 fontsize=12)
     ax.set_xticks(x)
     ax.set_xticklabels([LABELS[c] for c in configs], fontsize=11)
     ax.legend()
@@ -533,6 +589,7 @@ def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
         return
 
     fig, ax = plt.subplots(figsize=(12, 6))
+    _clean_axes(ax, fig)
     recovery_queries = {}
 
     for config in configs:
@@ -564,10 +621,8 @@ def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
         mean_lats = [float(np.mean(rel_lats[i])) for i in indices]
         smooth = pd.Series(mean_lats).rolling(window=window, min_periods=1).mean().tolist()
 
-        color = COLORS[config]
-        ax.plot(indices, smooth, label=LABELS[config], color=color, linewidth=2)
-        ax.axhline(y=pre_mean, color=color, linestyle=':', alpha=0.5,
-                   label=f'{LABELS[config]} normal-phase ({pre_mean:.0f}ms)')
+        ax.plot(indices, smooth, label=LABELS[config],
+                color=COLORS[config], linewidth=2)
 
         threshold = pre_mean * 1.2
         for i, v in enumerate(smooth):
@@ -575,12 +630,14 @@ def create_recovery_chart(results: dict, output_path: Path, window: int = 5):
                 recovery_queries[config] = i
                 break
 
-    ax.set_xlabel(f'Queries after overload (0 = Q{OVERLOAD_QUERY})', fontsize=12)
-    ax.set_ylabel('Mean Latency (ms) — 5-query rolling avg', fontsize=12)
-    ax.set_title('Aggregated Overload Latency Recovery\n'
-                 '(dotted = normal-phase mean; averaged across all valid runs)', fontsize=13)
-    ax.legend(loc='upper right', fontsize=8)
+    ax.set_xlabel(f'Queries after overload onset (0 = Q{OVERLOAD_QUERY})', fontsize=12)
+    ax.set_ylabel('Mean latency (ms)', fontsize=12)
+    ax.set_title('Overload-phase latency by routing mode', fontsize=14, pad=12)
+    ax.tick_params(axis='both', labelsize=10)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.12),
+              ncol=3, fontsize=10, frameon=False)
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.18)
     plt.savefig(output_path / 'recovery_chart.png', dpi=FIGURE_DPI, bbox_inches='tight')
     plt.close()
     print("saved: recovery_chart.png")
@@ -639,12 +696,25 @@ def create_failure_analysis(results: dict, output_path: Path):
                    color=err_colors[i % len(err_colors)],
                    edgecolor='black', linewidth=0.5)
             bottom += vals
+
+        # Annotate each bar with failure rate %
+        for xi, row in df.iterrows():
+            total = int(row['Total'])
+            failures = int(row['Failures'])
+            rate = failures / max(total, 1) * 100
+            ax.text(xi, failures + 5, f'{rate:.1f}%',
+                    ha='center', va='bottom', fontsize=9, fontweight='bold')
+
+        chart_title = ('Aggregated Failure Count by Routing Mode'
+                       if len(error_cols) == 1
+                       else 'Aggregated Failure Breakdown by Error Type')
         ax.set_xlabel('Routing Mode', fontsize=12)
-        ax.set_ylabel('Number of Failures', fontsize=12)
-        ax.set_title('Aggregated Failure Breakdown by Error Type', fontsize=13)
+        ax.set_ylabel('Number of Failures (out of 4,000 total per mode)', fontsize=11)
+        ax.set_title(chart_title, fontsize=13)
         ax.set_xticks(x)
         ax.set_xticklabels(df['Mode'].tolist(), fontsize=11)
-        ax.legend()
+        if len(error_cols) > 1:
+            ax.legend()
         plt.tight_layout()
         plt.savefig(output_path / 'failure_breakdown.png', dpi=FIGURE_DPI, bbox_inches='tight')
         plt.close()
@@ -797,7 +867,7 @@ def create_summary_table(summaries: dict, results: dict, output_path: Path) -> p
                 cpu_pct = f"{(total_ok-gpu_n)/total_ok*100:.0f}%"
 
         tok_s = s.get("mean_tokens_per_sec")
-        eff   = s.get("effective_latency_ms")
+        time_per_success = s.get("time_per_success_ms")
 
         rows.append({
             "Mode":             LABELS[config],
@@ -810,7 +880,7 @@ def create_summary_table(summaries: dict, results: dict, output_path: Path) -> p
             "P95 (ms)":         f"{s.get('p95_latency_ms',0):.1f}",
             "P99 (ms)":         f"{p99:.1f}" if p99 else "n/a",
             "P99/P50":          f"{tail_ratio}" if tail_ratio else "n/a",
-            "Eff. lat (ms)":    f"{eff}" if eff else "n/a",
+            "Time / success (ms)": f"{time_per_success}" if time_per_success else "n/a",
             "Normal (ms)":   f"{pre_mean}" if pre_mean is not None else "n/a",
             "Overload (ms)":  f"{post_mean}" if post_mean is not None else "n/a",
             "vs Baseline":      f"{improvement:+.1f}%",
@@ -854,7 +924,7 @@ def main():
     print(f"found data for: {list(results.keys())}")
     summaries = compute_aggregated_summaries(results)
 
-    create_latency_comparison_chart(summaries, output_dir)
+    create_latency_comparison_chart(summaries, results, output_dir)
     create_percentile_comparison(summaries, output_dir)
     create_latency_over_time_avg(results, output_dir)
     create_latency_boxplots(results, output_dir)

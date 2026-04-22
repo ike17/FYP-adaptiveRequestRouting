@@ -79,7 +79,7 @@ def bootstrap_ci(data: list, n_iter: int = 5000, ci: float = 0.95) -> tuple:
     return lo, hi
 
 
-def calculate_effective_latency(results: list) -> float:
+def calculate_time_per_success(results: list) -> float:
     successful = [r for r in results if r.get('success')]
     if not successful:
         return float('inf')
@@ -538,10 +538,10 @@ def create_summary_table(summaries: dict, results: dict, output_path: Path) -> p
         if s.get("p99_latency_ms") and s.get("p50_latency_ms") and s["p50_latency_ms"] > 0:
             tail_ratio = round(s["p99_latency_ms"] / s["p50_latency_ms"], 2)
 
-        eff_latency = None
+        time_per_success = None
         ci_str      = "n/a"
         if config in results:
-            eff_latency = round(calculate_effective_latency(results[config]), 1)
+            time_per_success = round(calculate_time_per_success(results[config]), 1)
             lats = get_latencies(results[config], "full")
             if lats:
                 lo, hi = bootstrap_ci(lats)
@@ -567,7 +567,7 @@ def create_summary_table(summaries: dict, results: dict, output_path: Path) -> p
             "P95 (ms)":        f"{s.get('p95_latency_ms', 0):.1f}",
             "P99 (ms)":        f"{s.get('p99_latency_ms', 0):.1f}",
             "P99/P50":         f"{tail_ratio}" if tail_ratio else "n/a",
-            "Eff. lat (ms)":   f"{eff_latency}" if eff_latency else "n/a",
+            "Time / success (ms)": f"{time_per_success}" if time_per_success else "n/a",
             "Normal mean":   f"{pre_mean}" if pre_mean is not None else "n/a",
             "Overload mean": f"{post_mean}" if post_mean is not None else "n/a",
             "vs baseline":     f"{improvement:+.1f}%",
