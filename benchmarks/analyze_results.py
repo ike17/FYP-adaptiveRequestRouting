@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Single-run analysis: charts + summary stats from one results dir.
 import argparse
 import json
 import sys

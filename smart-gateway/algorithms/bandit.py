@@ -1,3 +1,4 @@
+# Thompson Sampling bandit (GPU=0, CPU=1) with optional regime detection and 3-state circuit breaker.
 import math
 import time
 from collections import deque
@@ -56,6 +57,7 @@ class ThompsonSamplingBandit:
         self._cb_state_start: dict[int, float] = {0: 0.0, 1: 0.0}
         self._cb_probe_results: dict[int, list[float]] = {0: [], 1: []}
 
+    # Circuit breaker: CLOSED -> OPEN -> HALF_OPEN -> CLOSED/OPEN.
     def _cb_transition(self, arm: int, new_state: CBState) -> None:
         self._cb_state[arm] = new_state
         self._cb_state_start[arm] = time.time()
@@ -138,10 +140,12 @@ class ThompsonSamplingBandit:
         if self._enable_regime_detection:
             self._check_regime_change()
 
+    # Reward in [0,1]: 1 at/below target, exponential decay past it.
     def _compute_reward(self, latency_ms: float) -> float:
         excess = max(0.0, latency_ms - self.target_latency_ms)
         return math.exp(-self.k * excess / self.target_latency_ms)
 
+    # Regime detection: trigger soft-reset when reward drops vs baseline.
     def _check_regime_change(self) -> None:
         if len(self._reward_window) < self.window_size:
             return

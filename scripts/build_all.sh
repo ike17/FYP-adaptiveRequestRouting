@@ -1,4 +1,5 @@
 #!/bin/bash
+# Builds gateway + ollama images, copies static model in, imports to k3s on both nodes.
 set -euo pipefail
 
 if [ -z "${GPU_NODE:-}" ]; then

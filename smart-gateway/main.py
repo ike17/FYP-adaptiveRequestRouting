@@ -1,3 +1,4 @@
+# L7 Smart Gateway: routes /query to GPU or CPU Ollama per ROUTING_MODE.
 import asyncio
 import logging
 import os
@@ -131,6 +132,7 @@ class MetricsResponse(BaseModel):
 _BANDIT_MODES = {"bandit_plain", "bandit_regime", "adaptive"}
 
 
+# Routing dispatch: 0 = GPU, 1 = CPU.
 def _select_node(augmented_prompt: str) -> int:
     if ROUTING_MODE == "baseline":
         return 0
@@ -294,6 +296,7 @@ async def query(request: QueryRequest):
     )
 
 
+# Diagnostic / control endpoints below.
 @app.get("/health")
 async def health():
     return {

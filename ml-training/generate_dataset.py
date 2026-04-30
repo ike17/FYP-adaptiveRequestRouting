@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Synthetic training data for the static-ML baseline (heuristic labels with noise).
 import argparse
 import json
 from pathlib import Path

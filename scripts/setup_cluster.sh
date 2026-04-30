@@ -1,4 +1,5 @@
 #!/bin/bash
+# Labels nodes (gpu/cpu) and installs the NVIDIA device plugin + runtime class.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

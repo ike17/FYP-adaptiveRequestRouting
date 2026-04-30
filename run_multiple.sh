@@ -1,4 +1,5 @@
 #!/bin/bash
+# Repeats run_all.sh N times with retries, then aggregates results across runs.
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

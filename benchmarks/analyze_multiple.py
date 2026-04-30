@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Multi-run aggregation: pools N runs, computes MWU/Cohen's d/Bonferroni, emits final figures and tables.
 import argparse
 import json
 import sys

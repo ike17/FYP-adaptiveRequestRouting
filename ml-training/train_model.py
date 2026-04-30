@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Trains the Random Forest for `static` routing mode, writes gateway_model.pkl + diagnostics.
 import json
 import warnings
 from pathlib import Path

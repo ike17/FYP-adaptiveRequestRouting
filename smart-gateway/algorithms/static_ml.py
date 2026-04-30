@@ -1,3 +1,4 @@
+# Static-ML baseline: offline-trained Random Forest predicting node 0/1.
 from pathlib import Path
 
 import joblib

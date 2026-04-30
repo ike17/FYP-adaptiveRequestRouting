@@ -1,3 +1,4 @@
+# In-process ChromaDB knowledge base (fixed 20-doc corpus) for the RAG retrieval step.
 import logging
 
 import chromadb

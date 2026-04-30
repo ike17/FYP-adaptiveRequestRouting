@@ -1,4 +1,5 @@
 #!/bin/bash
+# One full sweep across all 6 routing modes: deploy, warm, run, analyse.
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
