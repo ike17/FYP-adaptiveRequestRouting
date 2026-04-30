@@ -1,0 +1,90 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/ike/vsc/fyp
+plugins: launch-testing-3.4.10, launch-testing-ros-0.26.11, ament-xmllint-0.17.5, ament-lint-0.17.5, ament-copyright-0.17.5, ament-pep257-0.17.5, ament-flake8-0.17.5, asyncio-1.3.0, anyio-4.13.0, colcon-core-0.20.1, cov-4.1.0, typeguard-4.1.5
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 41 items
+
+tests/test_analyze_results.py::TestCohensD::test_cohens_d_known_value PASSED [  2%]
+tests/test_analyze_results.py::TestRunComparison::test_detects_clear_difference PASSED [  4%]
+tests/test_analyze_results.py::TestRunComparison::test_empty_input_returns_none PASSED [  7%]
+tests/test_analyze_results.py::TestRunComparison::test_identical_distributions_not_significant PASSED [  9%]
+tests/test_analyze_results.py::TestGetLatencies::test_phase_post_returns_correct_records PASSED [ 12%]
+tests/test_analyze_results.py::TestGetLatencies::test_phase_pre_returns_correct_records PASSED [ 14%]
+tests/test_bandit_logic.py::TestRewardFunction::test_at_target_reward_is_one PASSED [ 17%]
+tests/test_bandit_logic.py::TestRewardFunction::test_below_target_clamps_to_one PASSED [ 19%]
+tests/test_bandit_logic.py::TestRewardFunction::test_double_target_decays_exponentially PASSED [ 21%]
+tests/test_bandit_logic.py::TestRewardFunction::test_extreme_latency_stays_above_zero PASSED [ 24%]
+tests/test_bandit_logic.py::TestRewardFunction::test_good_latency_increments_alpha PASSED [ 26%]
+tests/test_bandit_logic.py::TestRewardFunction::test_timeout_gives_zero_reward PASSED [ 29%]
+tests/test_bandit_logic.py::TestRegimeDetection::test_baseline_established_after_burn_in PASSED [ 31%]
+tests/test_bandit_logic.py::TestRegimeDetection::test_no_regime_change_on_stable_rewards PASSED [ 34%]
+tests/test_bandit_logic.py::TestRegimeDetection::test_regime_change_increments_reset_count PASSED [ 36%]
+tests/test_bandit_logic.py::TestRegimeDetection::test_soft_reset_decays_but_preserves_posterior_direction PASSED [ 39%]
+tests/test_bandit_logic.py::TestCircuitBreaker::test_bad_probes_reopen_circuit_immediately PASSED [ 41%]
+tests/test_bandit_logic.py::TestCircuitBreaker::test_cb_opens_worse_arm_after_regime_change PASSED [ 43%]
+tests/test_bandit_logic.py::TestCircuitBreaker::test_cb_transitions_open_to_half_open_after_duration PASSED [ 46%]
+tests/test_bandit_logic.py::TestCircuitBreaker::test_deadlock_guard_returns_an_arm_when_all_blocked PASSED [ 48%]
+tests/test_bandit_logic.py::TestCircuitBreaker::test_good_probes_in_half_open_close_circuit PASSED [ 51%]
+tests/test_bandit_logic.py::TestCircuitBreaker::test_half_open_without_probes_reopens_cleanly PASSED [ 53%]
+tests/test_bandit_logic.py::TestCircuitBreaker::test_open_arm_excluded_from_selection PASSED [ 56%]
+tests/test_bandit_logic.py::TestCircuitBreaker::test_unreachable_triggers_immediate_cb_open PASSED [ 58%]
+tests/test_bandit_logic.py::TestConvergence::test_select_arm_converges_on_dominant_arm PASSED [ 60%]
+tests/test_integration.py::test_query_all_routing_modes[baseline] PASSED [ 63%]
+tests/test_integration.py::test_query_all_routing_modes[least_in_flight] PASSED [ 65%]
+tests/test_integration.py::test_query_all_routing_modes[bandit_plain] PASSED [ 68%]
+tests/test_integration.py::test_query_all_routing_modes[bandit_regime] PASSED [ 70%]
+tests/test_integration.py::test_query_all_routing_modes[adaptive] PASSED [ 73%]
+tests/test_integration.py::test_query_all_routing_modes[static] PASSED   [ 75%]
+tests/test_integration.py::test_health_endpoint PASSED                   [ 78%]
+tests/test_integration.py::test_metrics_endpoint PASSED                  [ 80%]
+tests/test_integration.py::test_bandit_stats_endpoint PASSED             [ 82%]
+tests/test_integration.py::test_root_endpoint PASSED                     [ 85%]
+tests/test_integration.py::test_timeout_returns_504 PASSED               [ 87%]
+tests/test_integration.py::test_connect_error_returns_503 PASSED         [ 90%]
+tests/test_integration.py::test_delete_metrics_resets_query_counter PASSED [ 92%]
+tests/test_static_ml.py::TestStaticMLRouter::test_long_prompt_high_gpu_inflight_returns_valid_node PASSED [ 95%]
+tests/test_static_ml.py::TestStaticMLRouter::test_medium_prompt_mixed_inflight_returns_valid_node PASSED [ 97%]
+tests/test_static_ml.py::TestStaticMLRouter::test_short_prompt_zero_inflight_returns_valid_node PASSED [100%]
+
+=============================== warnings summary ===============================
+../../../../usr/lib/python3/dist-packages/mpl_toolkits/mplot3d/axes3d.py:35
+  Warning: Importing matplotlib.tri.triangulation was deprecated in Matplotlib 3.7 and will be removed two minor releases later. All functionality is available via the top-level module matplotlib.tri
+
+../../.local/lib/python3.12/site-packages/matplotlib/projections/__init__.py:63
+  Warning: Unable to import Axes3D. This may be due to multiple versions of Matplotlib being installed (e.g. as a system package and as a pip package). As a result, the 3D projection is not available.
+
+benchmarks/analyze_results.py:10
+  Warning: 
+  Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
+  (to allow more performant data types, such as the Arrow string type, and better interoperability with other libraries)
+  but was not found to be installed on your system.
+  If this would cause problems for you,
+  please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
+
+../../.local/lib/python3.12/site-packages/pydantic/_internal/_config.py:271
+  Warning: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.5/migration/
+
+tests/test_integration.py::test_query_all_routing_modes[static]
+tests/test_static_ml.py::TestStaticMLRouter::test_long_prompt_high_gpu_inflight_returns_valid_node
+tests/test_static_ml.py::TestStaticMLRouter::test_medium_prompt_mixed_inflight_returns_valid_node
+tests/test_static_ml.py::TestStaticMLRouter::test_short_prompt_zero_inflight_returns_valid_node
+  Warning: X does not have valid feature names, but RandomForestClassifier was fitted with feature names
+
+tests/test_integration.py: 4 warnings
+tests/test_static_ml.py: 9 warnings
+  Warning: ast.Num is deprecated and will be removed in Python 3.14; use ast.Constant instead
+
+tests/test_integration.py::test_query_all_routing_modes[static]
+tests/test_integration.py::test_query_all_routing_modes[static]
+tests/test_static_ml.py::TestStaticMLRouter::test_long_prompt_high_gpu_inflight_returns_valid_node
+tests/test_static_ml.py::TestStaticMLRouter::test_long_prompt_high_gpu_inflight_returns_valid_node
+tests/test_static_ml.py::TestStaticMLRouter::test_medium_prompt_mixed_inflight_returns_valid_node
+tests/test_static_ml.py::TestStaticMLRouter::test_medium_prompt_mixed_inflight_returns_valid_node
+tests/test_static_ml.py::TestStaticMLRouter::test_short_prompt_zero_inflight_returns_valid_node
+tests/test_static_ml.py::TestStaticMLRouter::test_short_prompt_zero_inflight_returns_valid_node
+  Warning: Attribute n is deprecated and will be removed in Python 3.14; use value instead
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 41 passed, 29 warnings in 6.79s ========================
